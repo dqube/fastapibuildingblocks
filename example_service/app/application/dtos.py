@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from pydantic import Field, EmailStr
 from fastapi_building_blocks.application import DTO
 
 
@@ -29,15 +30,15 @@ class UserDTO(DTO):
 class CreateUserDTO(DTO):
     """DTO for creating a user."""
     
-    email: str
-    first_name: str
-    last_name: str
-    bio: Optional[str] = None
+    email: EmailStr = Field(..., examples=["user@example.com"], description="User's email address")
+    first_name: str = Field(..., min_length=1, max_length=50, examples=["John"], description="User's first name")
+    last_name: str = Field(..., min_length=1, max_length=50, examples=["Doe"], description="User's last name")
+    bio: Optional[str] = Field(None, max_length=500, examples=["Software developer interested in DDD"], description="User's biography")
 
 
 class UpdateUserDTO(DTO):
     """DTO for updating a user."""
     
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
-    bio: Optional[str] = None
+    first_name: Optional[str] = Field(None, min_length=1, max_length=50, examples=["Jane"], description="User's first name")
+    last_name: Optional[str] = Field(None, min_length=1, max_length=50, examples=["Smith"], description="User's last name")
+    bio: Optional[str] = Field(None, max_length=500, examples=["Updated bio"], description="User's biography")
