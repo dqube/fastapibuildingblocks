@@ -1,6 +1,4 @@
-"""
-Structured logging with Loki integration.
-"""
+"""Structured logging with Loki integration."""
 
 import logging
 import sys
@@ -11,10 +9,12 @@ from typing import Optional, Dict, Any
 from opentelemetry import trace
 
 from .config import ObservabilityConfig
+from .redaction import RedactionFilter, create_redaction_filter
 
 
 _config: Optional[ObservabilityConfig] = None
 _logger_initialized: bool = False
+_redaction_filter: Optional[RedactionFilter] = None
 
 
 class JsonFormatter(logging.Formatter):
@@ -55,6 +55,10 @@ class JsonFormatter(logging.Formatter):
         if hasattr(record, "extra_fields"):
             log_data.update(record.extra_fields)
         
+        # Apply redaction if enabled
+        if _redaction_filter:
+            log_data = _redaction_filter.redact_dict(log_data)
+        
         return json.dumps(log_data)
 
 
@@ -66,6 +70,10 @@ class TextFormatter(logging.Formatter):
         # Get current span context
         span = trace.get_current_span()
         span_context = span.get_span_context()
+        
+        # Apply redaction to message if enabled
+        if _redaction_filter and isinstance(record.msg, str):
+            record.msg = _redaction_filter.redact_string(record.msg)
         
         # Base format
         base_format = f"%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -87,12 +95,21 @@ def setup_logging(config: ObservabilityConfig) -> None:
     Args:
         config: Observability configuration
     """
-    global _config, _logger_initialized
+    global _config, _logger_initialized, _redaction_filter
     
     if not config.logging_enabled or _logger_initialized:
         return
     
     _config = config
+    
+    # Initialize redaction filter if enabled
+    if config.log_redaction_enabled:
+        _redaction_filter = create_redaction_filter(
+            additional_keys=config.sensitive_field_keys,
+            additional_patterns=config.sensitive_field_patterns,
+            mask_value=config.redaction_mask_value,
+            mask_length=config.redaction_mask_length,
+        )
     
     # Get root logger
     root_logger = logging.getLogger()
