@@ -26,15 +26,28 @@ CREATE INDEX IF NOT EXISTS ix_outbox_status_created ON outbox_messages(status, c
 
 -- Create inbox table for exactly-once consumer pattern
 CREATE TABLE IF NOT EXISTS inbox_messages (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    event_id UUID NOT NULL UNIQUE,
+    message_id UUID PRIMARY KEY,
     event_type VARCHAR(255) NOT NULL,
+    event_version VARCHAR(50) NOT NULL DEFAULT '1.0',
     topic VARCHAR(255) NOT NULL,
-    payload TEXT NOT NULL,
-    processed BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    processed_at TIMESTAMP
+    partition VARCHAR(50) NOT NULL,
+    "offset" VARCHAR(50) NOT NULL,
+    correlation_id UUID,
+    status VARCHAR(50) NOT NULL DEFAULT 'processing',
+    received_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    processed_at TIMESTAMP,
+    locked_until TIMESTAMP,
+    attempt_count VARCHAR(50) NOT NULL DEFAULT '0',
+    last_error TEXT,
+    handler_name VARCHAR(255),
+    payload TEXT
 );
 
-CREATE INDEX IF NOT EXISTS ix_inbox_event_id ON inbox_messages(event_id);
-CREATE INDEX IF NOT EXISTS ix_inbox_processed ON inbox_messages(processed);
+CREATE INDEX IF NOT EXISTS ix_inbox_event_type ON inbox_messages(event_type);
+CREATE INDEX IF NOT EXISTS ix_inbox_topic ON inbox_messages(topic);
+CREATE INDEX IF NOT EXISTS ix_inbox_correlation_id ON inbox_messages(correlation_id);
+CREATE INDEX IF NOT EXISTS ix_inbox_status ON inbox_messages(status);
+CREATE INDEX IF NOT EXISTS ix_inbox_received_at ON inbox_messages(received_at);
+CREATE INDEX IF NOT EXISTS ix_inbox_locked_until ON inbox_messages(locked_until);
+CREATE INDEX IF NOT EXISTS ix_inbox_status_received ON inbox_messages(status, received_at);
+CREATE INDEX IF NOT EXISTS ix_inbox_topic_partition_offset ON inbox_messages(topic, partition, "offset");

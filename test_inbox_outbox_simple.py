@@ -46,7 +46,7 @@ class OrderPlacedEvent(IntegrationEvent):
 class UserCreatedHandler(InboxIntegrationEventHandler):
     """Handles user created events."""
     
-    async def handle(self, event: UserCreatedEvent) -> None:
+    async def handle(self, event: UserCreatedEvent, session) -> None:
         print(f"\n✉️  CONSUMED: UserCreatedEvent")
         print(f"   User: {event.full_name} ({event.email})")
         print(f"   Event ID: {event.event_id}")
@@ -55,7 +55,7 @@ class UserCreatedHandler(InboxIntegrationEventHandler):
 class OrderPlacedHandler(InboxIntegrationEventHandler):
     """Handles order placed events."""
     
-    async def handle(self, event: OrderPlacedEvent) -> None:
+    async def handle(self, event: OrderPlacedEvent, session) -> None:
         print(f"\n✉️  CONSUMED: OrderPlacedEvent")
         print(f"   Order ID: {event.order_id}")
         print(f"   Amount: ${event.total_amount:.2f}")
@@ -186,7 +186,7 @@ async def consume_with_inbox():
     
     try:
         print("\n📥 Starting inbox consumer...")
-        await consumer.start(["users.created", "orders.placed"])
+        await consumer.start(["integration-events.user_created_event", "integration-events.order_placed_event"])
         print("✅ Consumer started")
         
         print("\n👂 Listening for events (20 seconds)...")
@@ -200,7 +200,7 @@ async def consume_with_inbox():
     from sqlalchemy import text
     async with async_session_factory() as session:
         result = await session.execute(
-            text("SELECT COUNT(*) FROM inbox_messages WHERE processed = true")
+            text("SELECT COUNT(*) FROM inbox_messages WHERE status = 'processed'")
         )
         count = result.scalar()
         print(f"\n📥 Inbox Messages: {count} processed")

@@ -11,7 +11,7 @@ from enum import Enum
 from typing import Optional, List
 from uuid import UUID, uuid4
 
-from sqlalchemy import Column, String, DateTime, Text, Index, Boolean
+from sqlalchemy import Column, String, DateTime, Text, Index, Boolean, select, delete
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import declarative_base
 
@@ -121,11 +121,9 @@ class InboxRepository:
         Returns:
             True if message already exists, False otherwise
         """
-        exists = (
-            self.session.query(InboxMessage)
-            .filter(InboxMessage.message_id == message_id)
-            .first()
-        )
+        stmt = select(InboxMessage).where(InboxMessage.message_id == message_id)
+        result = await self.session.execute(stmt)
+        exists = result.scalar_one_or_none()
         return exists is not None
     
     async def add(
@@ -180,7 +178,9 @@ class InboxRepository:
         Args:
             message_id: ID of the message
         """
-        message = self.session.query(InboxMessage).filter(InboxMessage.message_id == message_id).first()
+        stmt = select(InboxMessage).where(InboxMessage.message_id == message_id)
+        result = await self.session.execute(stmt)
+        message = result.scalar_one_or_none()
         if message:
             message.status = InboxStatus.PROCESSED
             message.processed_at = datetime.utcnow()
@@ -197,7 +197,9 @@ class InboxRepository:
             message_id: ID of the message
             error: Error message
         """
-        message = self.session.query(InboxMessage).filter(InboxMessage.message_id == message_id).first()
+        stmt = select(InboxMessage).where(InboxMessage.message_id == message_id)
+        result = await self.session.execute(stmt)
+        message = result.scalar_one_or_none()
         if message:
             message.attempt_count = str(int(message.attempt_count) + 1)
             message.last_error = error
@@ -223,16 +225,18 @@ class InboxRepository:
         """
         cutoff = datetime.utcnow() - timedelta(minutes=timeout_minutes)
         
-        return (
-            self.session.query(InboxMessage)
-            .filter(
+        stmt = (
+            select(InboxMessage)
+            .where(
                 InboxMessage.status == InboxStatus.PROCESSING,
                 InboxMessage.received_at < cutoff
             )
             .order_by(InboxMessage.received_at)
             .limit(limit)
-            .all()
         )
+        
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
     
     async def cleanup_old_messages(self, days: int = 30) -> int:
         """
@@ -246,16 +250,16 @@ class InboxRepository:
         """
         cutoff = datetime.utcnow() - timedelta(days=days)
         
-        deleted = (
-            self.session.query(InboxMessage)
-            .filter(
+        stmt = (
+            delete(InboxMessage)
+            .where(
                 InboxMessage.status == InboxStatus.PROCESSED,
                 InboxMessage.processed_at < cutoff
             )
-            .delete()
         )
         
-        return deleted
+        result = await self.session.execute(stmt)
+        return result.rowcount
     
     async def get_failed_messages(self, limit: int = 100) -> List[InboxMessage]:
         """
@@ -267,13 +271,15 @@ class InboxRepository:
         Returns:
             List of failed messages
         """
-        return (
-            self.session.query(InboxMessage)
-            .filter(InboxMessage.status == InboxStatus.FAILED)
+        stmt = (
+            select(InboxMessage)
+            .where(InboxMessage.status == InboxStatus.FAILED)
             .order_by(InboxMessage.received_at.desc())
             .limit(limit)
-            .all()
         )
+        
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
     
     async def retry_failed_message(self, message_id: UUID) -> None:
         """
@@ -282,7 +288,9 @@ class InboxRepository:
         Args:
             message_id: ID of the message
         """
-        message = self.session.query(InboxMessage).filter(InboxMessage.message_id == message_id).first()
+        stmt = select(InboxMessage).where(InboxMessage.message_id == message_id)
+        result = await self.session.execute(stmt)
+        message = result.scalar_one_or_none()
         if message:
             message.status = InboxStatus.PROCESSING
             message.locked_until = None

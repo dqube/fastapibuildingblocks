@@ -157,17 +157,19 @@ class OutboxRepository:
         lock_until = now + timedelta(seconds=lock_duration_seconds)
         
         # Find pending messages that are not currently locked
-        messages = (
-            self.session.query(OutboxMessage)
-            .filter(
+        stmt = (
+            select(OutboxMessage)
+            .where(
                 OutboxMessage.status == OutboxStatus.PENDING,
                 (OutboxMessage.locked_until.is_(None) | (OutboxMessage.locked_until < now))
             )
             .order_by(OutboxMessage.created_at)
             .limit(limit)
             .with_for_update(skip_locked=True)  # Skip locked rows
-            .all()
         )
+        
+        result = await self.session.execute(stmt)
+        messages = list(result.scalars().all())
         
         # Lock the messages
         for message in messages:
@@ -182,7 +184,9 @@ class OutboxRepository:
         Args:
             message_id: ID of the message
         """
-        message = self.session.query(OutboxMessage).filter(OutboxMessage.id == message_id).first()
+        stmt = select(OutboxMessage).where(OutboxMessage.id == message_id)
+        result = await self.session.execute(stmt)
+        message = result.scalar_one_or_none()
         if message:
             message.status = OutboxStatus.PUBLISHED
             message.published_at = datetime.utcnow()
@@ -201,7 +205,9 @@ class OutboxRepository:
             error: Error message
             max_attempts: Maximum retry attempts before permanent failure
         """
-        message = self.session.query(OutboxMessage).filter(OutboxMessage.id == message_id).first()
+        stmt = select(OutboxMessage).where(OutboxMessage.id == message_id)
+        result = await self.session.execute(stmt)
+        message = result.scalar_one_or_none()
         if message:
             message.attempt_count = message.attempt_count + 1
             message.last_error = error
@@ -223,16 +229,16 @@ class OutboxRepository:
         """
         cutoff = datetime.utcnow() - timedelta(days=days)
         
-        deleted = (
-            self.session.query(OutboxMessage)
-            .filter(
+        stmt = (
+            delete(OutboxMessage)
+            .where(
                 OutboxMessage.status == OutboxStatus.PUBLISHED,
                 OutboxMessage.published_at < cutoff
             )
-            .delete()
         )
         
-        return deleted
+        result = await self.session.execute(stmt)
+        return result.rowcount
     
     async def get_failed_messages(self, limit: int = 100) -> List[OutboxMessage]:
         """
@@ -244,13 +250,15 @@ class OutboxRepository:
         Returns:
             List of failed messages
         """
-        return (
-            self.session.query(OutboxMessage)
-            .filter(OutboxMessage.status == OutboxStatus.FAILED)
+        stmt = (
+            select(OutboxMessage)
+            .where(OutboxMessage.status == OutboxStatus.FAILED)
             .order_by(OutboxMessage.created_at.desc())
             .limit(limit)
-            .all()
         )
+        
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
     
     async def retry_failed_message(self, message_id: UUID) -> None:
         """
@@ -259,7 +267,9 @@ class OutboxRepository:
         Args:
             message_id: ID of the message
         """
-        message = self.session.query(OutboxMessage).filter(OutboxMessage.id == message_id).first()
+        stmt = select(OutboxMessage).where(OutboxMessage.id == message_id)
+        result = await self.session.execute(stmt)
+        message = result.scalar_one_or_none()
         if message:
             message.status = OutboxStatus.PENDING
             message.locked_until = None
