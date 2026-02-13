@@ -19,7 +19,10 @@ This package provides a comprehensive set of base classes and utilities for buil
 📊 **Metrics Collection** - Prometheus metrics for all operations  
 📝 **Structured Logging** - JSON logs with trace correlation (Loki)  
 🎯 **Automatic Instrumentation** - Zero-config observability for mediator pattern  
-🐳 *Mediator**: Central dispatcher for commands and queries (mediator pattern)
+🐳 **Docker Support** - Production-ready Docker configurations  
+📮 **Kafka Integration** - Wolverine-style integration events for microservices  
+🔄 **Event-Driven Architecture** - Domain events and integration events  
+⚡ **Async/Await** - Full async support throughout
 - **Commands**: Write operations (CQRS pattern)
 - **Queries**: Read operations (CQRS pattern)
 - **Handlers**: Command and query handlers
@@ -111,6 +114,10 @@ make clean           # Clean artifacts
 ## Documentation
 
 - [MEDIATOR_PATTERN.md](MEDIATOR_PATTERN.md) - Mediator pattern implementation
+- [KAFKA_INTEGRATION.md](KAFKA_INTEGRATION.md) - Kafka integration events (Wolverine-style)
+- [KAFKA_QUICKSTART.md](KAFKA_QUICKSTART.md) - 5-minute Kafka quick start guide
+- [INBOX_OUTBOX_PATTERN.md](INBOX_OUTBOX_PATTERN.md) - Reliable messaging patterns
+- [INBOX_OUTBOX_CONFIG.md](INBOX_OUTBOX_CONFIG.md) - Configuration guide for inbox/outbox
 - [OBSERVABILITY.md](OBSERVABILITY.md) - Complete observability guide
 - [DOCKER_GUIDE.md](DOCKER_GUIDE.md) - Docker deployment guide
 
@@ -197,6 +204,98 @@ open http://localhost:3000
 ```
 
 See [OBSERVABILITY.md](OBSERVABILITY.md) for detailed documentation.
+
+## Kafka Integration Events
+
+Event-driven microservices communication with Kafka, similar to Wolverine's integration events in .NET:
+
+```bash
+# Start Kafka
+docker-compose -f docker-compose.kafka.yml up -d
+
+# Install dependencies
+pip install -e ".[messaging]"
+
+# Run example
+python example_kafka_integration.py
+```
+
+Features:
+- ✅ **Integration Events** - Cross-service communication via Kafka
+- ✅ **Automatic Publishing** - Events published after command/query processing
+- ✅ **Event Mapping** - Domain events → Integration events
+- ✅ **Reliable Consumption** - Manual offset commit with retry logic
+- ✅ **Dead Letter Queue** - Failed messages sent to DLQ
+- ✅ **Full Observability** - Distributed tracing for all Kafka operations
+- ✅ **Transactional Outbox** - Reliable publishing with database transactions
+- ✅ **Idempotent Inbox** - Exactly-once message processing
+- ✅ **Configurable Patterns** - Enable/disable inbox and outbox via configuration
+
+### Configurable Inbox/Outbox Pattern
+
+Control reliability patterns via configuration:
+
+```python
+from fastapi_building_blocks.infrastructure.messaging import (
+    KafkaConfig,
+    create_event_publisher,
+)
+
+# Option 1: Direct publishing (development)
+config = KafkaConfig(
+    enable_outbox=False,  # ❌ No database dependency
+    enable_inbox=False,   # ❌ No duplicate detection
+)
+
+# Option 2: Full reliability (production - recommended!)
+config = KafkaConfig(
+    enable_outbox=True,   # ✅ Transactional outbox
+    enable_inbox=True,    # ✅ Exactly-once processing
+)
+
+# Or via environment variables
+# export KAFKA_ENABLE_OUTBOX=true
+# export KAFKA_ENABLE_INBOX=true
+config = KafkaConfig()
+
+# Factory automatically chooses the right publisher
+publisher = create_event_publisher(config, session=session)
+await publisher.publish(event)
+```
+
+**When to enable:**
+- `enable_outbox=True`: Production, when events must not be lost
+- `enable_inbox=True`: Production, when duplicate processing is unacceptable  
+- Both `False`: Development/testing only
+
+See [INBOX_OUTBOX_CONFIG.md](INBOX_OUTBOX_CONFIG.md) for configuration guide and [INBOX_OUTBOX_PATTERN.md](INBOX_OUTBOX_PATTERN.md) for pattern details.
+
+### Quick Example
+
+```python
+from fastapi_building_blocks.domain.events import IntegrationEvent
+from fastapi_building_blocks.infrastructure.messaging import (
+    create_event_publisher,
+    create_integration_event_mediator,
+)
+
+# Define integration event
+class UserCreatedIntegrationEvent(IntegrationEvent):
+    user_id: UUID
+    email: str
+
+# Wrap mediator for automatic publishing
+mediator = create_integration_event_mediator(
+    base_mediator,
+    publisher,
+    mapper
+)
+
+# Send command - integration event published automatically!
+await mediator.send(CreateUserCommand(...))
+```
+
+See [KAFKA_INTEGRATION.md](KAFKA_INTEGRATION.md) for complete documentation or [KAFKA_QUICKSTART.md](KAFKA_QUICKSTART.md) for a 5-minute quick start.
 
 ## Usage Examples
 

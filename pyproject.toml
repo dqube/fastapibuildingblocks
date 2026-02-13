@@ -58,6 +58,8 @@ database = [
 messaging = [
     "pika>=1.3.0",  # RabbitMQ
     "redis>=5.0.0",
+    "aiokafka>=0.10.0",  # Kafka
+    "pydantic-settings>=2.0.0",  # For Kafka configuration
 ]
 
 [project.urls]

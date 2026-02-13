@@ -1,7 +1,7 @@
 # Makefile for FastAPI Building Blocks
 # Similar to dotnet run/build commands
 
-.PHONY: help install dev run test clean build lint format docker-build docker-deploy obs-up obs-down obs-restart obs-logs
+.PHONY: help install dev run test clean build lint format docker-build docker-deploy obs-up obs-down obs-restart obs-logs kafka-up kafka-down kafka-restart kafka-logs
 
 # Default target
 help:
@@ -20,6 +20,15 @@ help:
 	@echo "Docker:"
 	@echo "  make docker-build - Build Docker image for example service"
 	@echo "  make docker-deploy- Deploy and run in Docker container"
+	@echo ""
+	@echo "Kafka Stack:"
+	@echo "  make kafka-up     - Start Kafka stack (Kafka, Zookeeper, UI, Schema Registry)"
+	@echo "  make kafka-down   - Stop Kafka stack"
+	@echo "  make kafka-restart- Restart Kafka stack"
+	@echo "  make kafka-logs   - View Kafka stack logs"
+	@echo "  make kafka-status - Check status of Kafka services"
+	@echo "  make kafka-ui     - Open Kafka UI in browser"
+	@echo "  make kafka-clean  - Stop Kafka and remove volumes"
 	@echo ""
 	@echo "Observability Stack:"
 	@echo "  make obs-up       - Start observability stack (Tempo, Loki, Prometheus, Grafana)"
@@ -237,3 +246,83 @@ obs-all: obs-up
 	@echo ""
 	@echo "🚀 Starting application with observability..."
 	@$(MAKE) run-with-obs
+# Kafka stack commands
+kafka-up:
+	@echo "📨 Starting Kafka Stack..."
+	@echo ""
+	@echo "Starting services:"
+	@echo "  - Zookeeper (port: 2181)"
+	@echo "  - Kafka Broker (port: 9092)"
+	@echo "  - Kafka UI (port: 8080)"
+	@echo "  - Schema Registry (port: 8081)"
+	@echo ""
+	docker-compose -f docker-compose.kafka.yml up -d
+	@echo ""
+	@echo "✅ Kafka stack started!"
+	@echo ""
+	@echo "Access points:"
+	@echo "  - Kafka UI: http://localhost:8080"
+	@echo "  - Kafka Broker: localhost:9092"
+	@echo "  - Schema Registry: http://localhost:8081"
+	@echo ""
+	@echo "💡 Tip: Use KAFKA_BOOTSTRAP_SERVERS=localhost:9092 in your application"
+
+kafka-down:
+	@echo "🛑 Stopping Kafka Stack..."
+	docker-compose -f docker-compose.kafka.yml down
+	@echo "✅ Kafka stack stopped!"
+
+kafka-restart: kafka-down kafka-up
+	@echo "✅ Kafka stack restarted!"
+
+kafka-logs:
+	@echo "📋 Kafka stack logs:"
+	@echo "===================="
+	docker-compose -f docker-compose.kafka.yml logs -f
+
+kafka-status:
+	@echo "📊 Kafka Stack Status:"
+	@echo "======================"
+	@docker-compose -f docker-compose.kafka.yml ps
+
+kafka-clean:
+	@echo "🧹 Cleaning Kafka data..."
+	docker-compose -f docker-compose.kafka.yml down -v
+	@echo "✅ Kafka volumes removed!"
+
+kafka-ui:
+	@echo "🌐 Opening Kafka UI..."
+	@open http://localhost:8080 2>/dev/null || xdg-open http://localhost:8080 2>/dev/null || echo "Please open http://localhost:8080 in your browser"
+
+# Install messaging dependencies (Kafka packages)
+install-messaging:
+	@echo "📦 Installing messaging dependencies (Kafka)..."
+	python3 -m pip install -e ".[messaging]"
+	@echo "✅ Messaging dependencies installed!"
+	@echo ""
+	@echo "Installed packages:"
+	@python3 -m pip list | grep -E "(aiokafka|pydantic-settings)"
+
+# Run with Kafka enabled
+run-with-kafka:
+	@echo "🚀 Starting service with Kafka integration..."
+	@echo ""
+	@echo "Checking Kafka stack..."
+	@docker-compose -f docker-compose.kafka.yml ps | grep -q "Up" || (echo "❌ Kafka stack not running. Start it with 'make kafka-up'" && exit 1)
+	@echo "✅ Kafka stack is running"
+	@echo ""
+	@echo "Starting service..."
+	@cd example_service && \
+		KAFKA_BOOTSTRAP_SERVERS=localhost:9092 \
+		KAFKA_ENABLE_OUTBOX=true \
+		KAFKA_ENABLE_INBOX=true \
+		python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Complete Kafka setup (stack + dependencies + application)
+kafka-all: kafka-up install-messaging
+	@echo ""
+	@echo "⏳ Waiting for Kafka to initialize (30 seconds)..."
+	@sleep 30
+	@echo ""
+	@echo "🚀 Starting application with Kafka..."
+	@$(MAKE) run-with-kafka
