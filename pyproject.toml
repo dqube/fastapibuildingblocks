@@ -28,6 +28,18 @@ dependencies = [
     "fastapi>=0.100.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
+    # OpenTelemetry Core
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    # OpenTelemetry Instrumentation
+    "opentelemetry-instrumentation>=0.41b0",
+    "opentelemetry-instrumentation-fastapi>=0.41b0",
+    "opentelemetry-instrumentation-logging>=0.41b0",
+    # OpenTelemetry Exporters (OTLP for Tempo, Prometheus)
+    "opentelemetry-exporter-otlp-proto-grpc>=1.20.0",
+    "opentelemetry-exporter-prometheus>=0.41b0",
+    # Prometheus client for metrics
+    "prometheus-client>=0.19.0",
 ]
 
 [project.optional-dependencies]

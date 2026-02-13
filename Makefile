@@ -1,7 +1,7 @@
 # Makefile for FastAPI Building Blocks
 # Similar to dotnet run/build commands
 
-.PHONY: help install dev run test clean build lint format docker-build docker-deploy
+.PHONY: help install dev run test clean build lint format docker-build docker-deploy obs-up obs-down obs-restart obs-logs
 
 # Default target
 help:
@@ -20,6 +20,13 @@ help:
 	@echo "Docker:"
 	@echo "  make docker-build - Build Docker image for example service"
 	@echo "  make docker-deploy- Deploy and run in Docker container"
+	@echo ""
+	@echo "Observability Stack:"
+	@echo "  make obs-up       - Start observability stack (Tempo, Loki, Prometheus, Grafana)"
+	@echo "  make obs-down     - Stop observability stack"
+	@echo "  make obs-restart  - Restart observability stack"
+	@echo "  make obs-logs     - View observability stack logs"
+	@echo "  make obs-status   - Check status of observability services"
 	@echo ""
 	@echo "Code Quality:"
 	@echo "  make lint         - Run code linters"
@@ -156,3 +163,77 @@ docker-logs:
 	@echo "📋 Container logs:"
 	@echo "=================="
 	docker logs -f user-management-api
+
+# Observability stack commands
+obs-up:
+	@echo "🔭 Starting Observability Stack..."
+	@echo ""
+	@echo "Starting services:"
+	@echo "  - OpenTelemetry Collector (ports: 4317, 4318)"
+	@echo "  - Tempo (port: 3200)"
+	@echo "  - Loki (port: 3100)"
+	@echo "  - Promtail"
+	@echo "  - Prometheus (port: 9090)"
+	@echo "  - Grafana (port: 3000)"
+	@echo ""
+	docker-compose -f docker-compose.observability.yml up -d
+	@echo ""
+	@echo "✅ Observability stack started!"
+	@echo ""
+	@echo "Access points:"
+	@echo "  - Grafana: http://localhost:3000 (anonymous access enabled)"
+	@echo "  - Prometheus: http://localhost:9090"
+	@echo "  - Tempo: http://localhost:3200"
+	@echo "  - Loki: http://localhost:3100"
+	@echo ""
+	@echo "💡 Tip: Run your application with OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317"
+
+obs-down:
+	@echo "🛑 Stopping Observability Stack..."
+	docker-compose -f docker-compose.observability.yml down
+	@echo "✅ Observability stack stopped!"
+
+obs-restart: obs-down obs-up
+	@echo "✅ Observability stack restarted!"
+
+obs-logs:
+	@echo "📋 Observability stack logs:"
+	@echo "============================"
+	docker-compose -f docker-compose.observability.yml logs -f
+
+obs-status:
+	@echo "📊 Observability Stack Status:"
+	@echo "=============================="
+	@docker-compose -f docker-compose.observability.yml ps
+
+obs-clean:
+	@echo "🧹 Cleaning observability data..."
+	docker-compose -f docker-compose.observability.yml down -v
+	@echo "✅ Observability volumes removed!"
+
+# Run with observability enabled
+run-with-obs:
+	@echo "🚀 Starting service with observability..."
+	@echo ""
+	@echo "Checking observability stack..."
+	@docker-compose -f docker-compose.observability.yml ps | grep -q "Up" || (echo "❌ Observability stack not running. Start it with 'make obs-up'" && exit 1)
+	@echo "✅ Observability stack is running"
+	@echo ""
+	@echo "Starting service..."
+	@cd example_service && \
+		OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
+		TRACING_ENABLED=true \
+		LOGGING_ENABLED=true \
+		METRICS_ENABLED=true \
+		LOG_FORMAT=json \
+		LOG_LEVEL=INFO \
+		python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Complete observability setup (stack + application)
+obs-all: obs-up
+	@echo ""
+	@echo "⏳ Waiting for stack to initialize (30 seconds)..."
+	@sleep 30
+	@echo ""
+	@echo "🚀 Starting application with observability..."
+	@$(MAKE) run-with-obs

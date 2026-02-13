@@ -1,0 +1,165 @@
+"""
+Structured logging with Loki integration.
+"""
+
+import logging
+import sys
+import json
+from datetime import datetime
+from typing import Optional, Dict, Any
+
+from opentelemetry import trace
+
+from .config import ObservabilityConfig
+
+
+_config: Optional[ObservabilityConfig] = None
+_logger_initialized: bool = False
+
+
+class JsonFormatter(logging.Formatter):
+    """JSON formatter for structured logging compatible with Loki."""
+    
+    def format(self, record: logging.LogRecord) -> str:
+        """Format log record as JSON."""
+        # Get current span context for trace correlation
+        span = trace.get_current_span()
+        span_context = span.get_span_context()
+        
+        log_data = {
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "function": record.funcName,
+            "line": record.lineno,
+        }
+        
+        # Add trace context for correlation
+        if span_context.is_valid:
+            log_data["trace_id"] = format(span_context.trace_id, "032x")
+            log_data["span_id"] = format(span_context.span_id, "016x")
+            log_data["trace_flags"] = format(span_context.trace_flags, "02x")
+        
+        # Add service information if available
+        if _config:
+            log_data["service"] = _config.service_name
+            log_data["environment"] = _config.environment
+        
+        # Add exception information
+        if record.exc_info:
+            log_data["exception"] = self.formatException(record.exc_info)
+        
+        # Add custom fields from extra
+        if hasattr(record, "extra_fields"):
+            log_data.update(record.extra_fields)
+        
+        return json.dumps(log_data)
+
+
+class TextFormatter(logging.Formatter):
+    """Human-readable text formatter with trace context."""
+    
+    def format(self, record: logging.LogRecord) -> str:
+        """Format log record as text with trace context."""
+        # Get current span context
+        span = trace.get_current_span()
+        span_context = span.get_span_context()
+        
+        # Base format
+        base_format = f"%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        
+        # Add trace context if available
+        if span_context.is_valid:
+            trace_id = format(span_context.trace_id, "032x")
+            span_id = format(span_context.span_id, "016x")
+            base_format = f"{base_format} [trace_id={trace_id} span_id={span_id}]"
+        
+        formatter = logging.Formatter(base_format)
+        return formatter.format(record)
+
+
+def setup_logging(config: ObservabilityConfig) -> None:
+    """
+    Configure structured logging.
+    
+    Args:
+        config: Observability configuration
+    """
+    global _config, _logger_initialized
+    
+    if not config.logging_enabled or _logger_initialized:
+        return
+    
+    _config = config
+    
+    # Get root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(config.log_level)
+    
+    # Remove existing handlers
+    root_logger.handlers.clear()
+    
+    # Create console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(config.log_level)
+    
+    # Set formatter based on configuration
+    if config.log_format == "json":
+        formatter = JsonFormatter()
+    else:
+        formatter = TextFormatter()
+    
+    console_handler.setFormatter(formatter)
+    root_logger.addHandler(console_handler)
+    
+    _logger_initialized = True
+
+
+def get_logger(name: str = __name__) -> logging.Logger:
+    """
+    Get a logger instance.
+    
+    Args:
+        name: Logger name (usually __name__ of the module)
+        
+    Returns:
+        Logger instance
+    """
+    return logging.getLogger(name)
+
+
+class LoggerAdapter(logging.LoggerAdapter):
+    """Logger adapter that adds extra fields to all log records."""
+    
+    def process(self, msg: str, kwargs: Dict[str, Any]) -> tuple:
+        """Process log message and add extra fields."""
+        # Ensure extra exists
+        if "extra" not in kwargs:
+            kwargs["extra"] = {}
+        
+        # Add custom fields
+        if self.extra:
+            kwargs["extra"]["extra_fields"] = self.extra
+        
+        return msg, kwargs
+
+
+def get_logger_with_context(name: str = __name__, **context) -> LoggerAdapter:
+    """
+    Get a logger with additional context fields.
+    
+    Args:
+        name: Logger name
+        **context: Additional context fields to include in all log records
+        
+    Returns:
+        LoggerAdapter instance with context
+        
+    Example:
+        logger = get_logger_with_context(__name__, user_id="123", action="create")
+        logger.info("User action performed")
+    """
+    logger = get_logger(name)
+    return LoggerAdapter(logger, context)

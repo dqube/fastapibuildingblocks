@@ -1,9 +1,26 @@
 """Mediator implementation."""
 
-from typing import Any, Callable
+import time
+from typing import Any, Callable, Optional
 
 from .base import IMediator, Request, RequestHandler
 from .registry import HandlerRegistry
+
+
+# Import observability modules (optional)
+try:
+    from ...observability.tracing import get_tracer
+    from ...observability.logging import get_logger
+    from ...observability.metrics import record_mediator_request
+    OBSERVABILITY_AVAILABLE = True
+except ImportError:
+    OBSERVABILITY_AVAILABLE = False
+    get_tracer = None
+    get_logger = None
+    record_mediator_request = None
+
+
+logger = get_logger(__name__) if OBSERVABILITY_AVAILABLE else None
 
 
 class Mediator(IMediator):
@@ -33,6 +50,11 @@ class Mediator(IMediator):
         """
         Send a request to its handler.
         
+        This method automatically instruments the request with:
+        - Distributed tracing (span creation)
+        - Structured logging
+        - Metrics collection (duration, success/error counts)
+        
         Args:
             request: The request to send (command or query)
             
@@ -43,16 +65,128 @@ class Mediator(IMediator):
             ValueError: If no handler is registered for the request type
         """
         request_type = type(request)
+        request_name = request_type.__name__
+        
         handler = self._registry.get_handler(request_type)
         
         if handler is None:
             raise ValueError(
-                f"No handler registered for request type: {request_type.__name__}. "
+                f"No handler registered for request type: {request_name}. "
                 f"Make sure to register a handler using register_handler() or "
                 f"register_handler_factory() before sending requests."
             )
         
-        return await handler.handle(request)
+        handler_name = type(handler).__name__
+        
+        # Start tracing span if observability is available
+        if OBSERVABILITY_AVAILABLE and get_tracer:
+            tracer = get_tracer(__name__)
+            with tracer.start_as_current_span(f"mediator.send.{request_name}") as span:
+                # Add span attributes
+                span.set_attribute("mediator.request_type", request_name)
+                span.set_attribute("mediator.handler_type", handler_name)
+                span.set_attribute("mediator.request_module", request_type.__module__)
+                
+                # Execute with instrumentation
+                return await self._execute_with_instrumentation(
+                    request, handler, request_name, handler_name, span
+                )
+        else:
+            # Execute without tracing
+            return await self._execute_with_instrumentation(
+                request, handler, request_name, handler_name, None
+            )
+    
+    async def _execute_with_instrumentation(
+        self, 
+        request: Request, 
+        handler: RequestHandler[Any, Any],
+        request_name: str,
+        handler_name: str,
+        span: Optional[Any] = None
+    ) -> Any:
+        """Execute handler with full instrumentation."""
+        start_time = time.time()
+        error_type: Optional[str] = None
+        success = False
+        
+        try:
+            # Log request start
+            if logger:
+                logger.info(
+                    f"Mediator processing request: {request_name}",
+                    extra={
+                        "extra_fields": {
+                            "mediator.request_type": request_name,
+                            "mediator.handler_type": handler_name,
+                        }
+                    },
+                )
+            
+            # Execute handler
+            result = await handler.handle(request)
+            success = True
+            
+            # Update span on success
+            if span:
+                span.set_attribute("mediator.success", True)
+            
+            # Log success
+            if logger:
+                duration = time.time() - start_time
+                logger.info(
+                    f"Mediator completed request: {request_name}",
+                    extra={
+                        "extra_fields": {
+                            "mediator.request_type": request_name,
+                            "mediator.handler_type": handler_name,
+                            "mediator.duration_seconds": duration,
+                            "mediator.success": True,
+                        }
+                    },
+                )
+            
+            return result
+            
+        except Exception as e:
+            error_type = type(e).__name__
+            success = False
+            
+            # Update span on error
+            if span:
+                span.set_attribute("mediator.success", False)
+                span.set_attribute("mediator.error_type", error_type)
+                span.record_exception(e)
+            
+            # Log error
+            if logger:
+                duration = time.time() - start_time
+                logger.error(
+                    f"Mediator error processing request: {request_name}",
+                    exc_info=True,
+                    extra={
+                        "extra_fields": {
+                            "mediator.request_type": request_name,
+                            "mediator.handler_type": handler_name,
+                            "mediator.duration_seconds": duration,
+                            "mediator.error_type": error_type,
+                        }
+                    },
+                )
+            
+            raise
+            
+        finally:
+            # Record metrics
+            if OBSERVABILITY_AVAILABLE and record_mediator_request:
+                duration = time.time() - start_time
+                record_mediator_request(
+                    request_type=request_name,
+                    handler=handler_name,
+                    duration=duration,
+                    success=success,
+                    error_type=error_type,
+                )
     
     def register_handler(
         self, 
