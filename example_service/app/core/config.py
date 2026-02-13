@@ -21,6 +21,9 @@ class Settings(BaseSettings):
         "http://localhost:8080",
     ]
     
+    # Database
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/user_management"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

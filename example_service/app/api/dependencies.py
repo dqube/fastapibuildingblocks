@@ -3,10 +3,12 @@
 from typing import Annotated
 
 from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_building_blocks.application import IMediator, Mediator
 
+from ..core.database import get_db
 from ..domain.repositories.user_repository import IUserRepository
-from ..infrastructure.repositories.user_repository import InMemoryUserRepository
+from ..infrastructure.repositories.postgres_user_repository import PostgreSQLUserRepository
 from ..application.handlers.user_command_handlers import (
     CreateUserCommandHandler,
     UpdateUserCommandHandler,
@@ -29,16 +31,24 @@ from ..application.queries.user_queries import (
 )
 
 
+# Database session dependency
+DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
+
+
 # Repository dependencies
-def get_user_repository() -> IUserRepository:
+def get_user_repository(db: DatabaseDep) -> IUserRepository:
     """
     Get user repository instance.
     
-    In a real application, this would return a database-backed repository.
-    For simplicity, we're using an in-memory repository.
+    Uses PostgreSQL repository with SQLAlchemy session from building blocks.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        User repository instance
     """
-    # This should be a singleton in production
-    return InMemoryUserRepository()
+    return PostgreSQLUserRepository(db)
 
 
 UserRepositoryDep = Annotated[IUserRepository, Depends(get_user_repository)]

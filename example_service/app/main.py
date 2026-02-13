@@ -84,6 +84,19 @@ def create_application() -> FastAPI:
     # Include API router
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
     
+    # Database lifecycle events
+    @app.on_event("startup")
+    async def startup():
+        """Initialize database connection on startup."""
+        from .core.database import init_db
+        await init_db()
+    
+    @app.on_event("shutdown")
+    async def shutdown():
+        """Close database connection on shutdown."""
+        from .core.database import close_db
+        await close_db()
+    
     # Health check endpoint
     @app.get("/health", tags=["health"])
     async def health_check():

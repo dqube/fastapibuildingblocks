@@ -105,6 +105,49 @@ services:
     networks:
       - observability
 
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: user-management-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=user_management
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./example_service/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - observability
+
+  # pgAdmin - PostgreSQL Management Tool
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+      - PGADMIN_CONFIG_SERVER_MODE=False
+      - PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED=False
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./example_service/pgadmin_servers.json:/pgadmin4/servers.json
+      - ./example_service/pgpass:/pgpass
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - observability
+    restart: unless-stopped
+
   # FastAPI User Management Service
   api:
     build:
@@ -121,6 +164,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
       - OTEL_EXPORTER_OTLP_INSECURE=true
       - SENSITIVE_FIELD_KEYS=username,first_name,last_name,bio,phone,address,ssn,credit_card
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/user_management
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/users/')"]
@@ -129,7 +173,10 @@ services:
       retries: 3
       start_period: 10s
     depends_on:
-      - otel-collector
+      postgres:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
     networks:
       - observability
 
@@ -139,6 +186,8 @@ volumes:
   promtail-positions:
   prometheus-data:
   grafana-data:
+  postgres-data:
+  pgadmin-data:
 
 networks:
   observability:
