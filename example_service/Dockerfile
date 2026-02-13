@@ -19,7 +19,7 @@ COPY ../README.md ./fastapi-building-blocks/
 RUN pip install --no-cache-dir --user ./fastapi-building-blocks
 
 # Copy requirements and install remaining dependencies
-COPY requirements.txt .
+COPY example_service/requirements.txt .
 # Install only the dependencies that aren't the local package
 RUN grep -v "fastapi-building-blocks" requirements.txt > requirements-docker.txt && \
     pip install --no-cache-dir --user -r requirements-docker.txt
@@ -43,7 +43,7 @@ WORKDIR /app
 COPY --from=builder /root/.local /home/appuser/.local
 
 # Copy application code
-COPY --chown=appuser:appuser . .
+COPY --chown=appuser:appuser example_service/ .
 
 # Switch to non-root user
 USER appuser

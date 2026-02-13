@@ -55,6 +55,15 @@ def create_application() -> FastAPI:
             log_format=os.getenv("LOG_FORMAT", "json"),
             # Metrics configuration
             metrics_port=int(os.getenv("METRICS_PORT", "9090")),
+            # Request/Response logging with redaction (.NET-style middleware)
+            log_request_body=os.getenv("LOG_REQUEST_BODY", "true").lower() == "true",
+            log_request_headers=os.getenv("LOG_REQUEST_HEADERS", "false").lower() == "true",
+            log_response_body=os.getenv("LOG_RESPONSE_BODY", "true").lower() == "true",
+            log_response_headers=os.getenv("LOG_RESPONSE_HEADERS", "false").lower() == "true",
+            # Redaction (protect sensitive data in logs)
+            log_redaction_enabled=os.getenv("LOG_REDACTION_ENABLED", "true").lower() == "true",
+            max_body_log_size=int(os.getenv("MAX_BODY_LOG_SIZE", "10000")),
+            exclude_paths=["/health", "/metrics", "/docs", "/redoc", "/openapi.json"],
         )
         setup_observability(app, observability_config)
     
