@@ -39,6 +39,10 @@ def create_application() -> FastAPI:
     
     # Setup observability (tracing, logging, metrics)
     if OBSERVABILITY_AVAILABLE:
+        # Parse sensitive field keys from environment
+        sensitive_keys = os.getenv("SENSITIVE_FIELD_KEYS", "").split(",")
+        sensitive_keys = [key.strip() for key in sensitive_keys if key.strip()]
+        
         observability_config = ObservabilityConfig(
             service_name=settings.APP_NAME,
             service_version=settings.APP_VERSION,
@@ -62,6 +66,7 @@ def create_application() -> FastAPI:
             log_response_headers=os.getenv("LOG_RESPONSE_HEADERS", "false").lower() == "true",
             # Redaction (protect sensitive data in logs)
             log_redaction_enabled=os.getenv("LOG_REDACTION_ENABLED", "true").lower() == "true",
+            sensitive_field_keys=sensitive_keys,
             max_body_log_size=int(os.getenv("MAX_BODY_LOG_SIZE", "10000")),
             exclude_paths=["/health", "/metrics", "/docs", "/redoc", "/openapi.json"],
         )

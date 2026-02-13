@@ -7,6 +7,10 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 
 from opentelemetry import trace
+from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+from opentelemetry.exporter.otlp.proto.grpc._log_exporter import OTLPLogExporter
+from opentelemetry.sdk.resources import Resource
 
 from .config import ObservabilityConfig
 from .redaction import RedactionFilter, create_redaction_filter
@@ -15,6 +19,7 @@ from .redaction import RedactionFilter, create_redaction_filter
 _config: Optional[ObservabilityConfig] = None
 _logger_initialized: bool = False
 _redaction_filter: Optional[RedactionFilter] = None
+_logger_provider: Optional[LoggerProvider] = None
 
 
 class JsonFormatter(logging.Formatter):
@@ -95,7 +100,7 @@ def setup_logging(config: ObservabilityConfig) -> None:
     Args:
         config: Observability configuration
     """
-    global _config, _logger_initialized, _redaction_filter
+    global _config, _logger_initialized, _redaction_filter, _logger_provider
     
     if not config.logging_enabled or _logger_initialized:
         return
@@ -118,7 +123,7 @@ def setup_logging(config: ObservabilityConfig) -> None:
     # Remove existing handlers
     root_logger.handlers.clear()
     
-    # Create console handler
+    # Create console handler for stdout logging
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(config.log_level)
     
@@ -130,6 +135,42 @@ def setup_logging(config: ObservabilityConfig) -> None:
     
     console_handler.setFormatter(formatter)
     root_logger.addHandler(console_handler)
+    
+    # Setup OpenTelemetry LoggerProvider for sending logs to OTLP
+    try:
+        # Create resource with service information
+        resource = Resource.create({
+            "service.name": config.service_name,
+            "service.version": config.service_version,
+            "service.environment": config.environment,
+        })
+        
+        # Create LoggerProvider
+        _logger_provider = LoggerProvider(resource=resource)
+        
+        # Create OTLP Log Exporter
+        otlp_log_exporter = OTLPLogExporter(
+            endpoint=config.otlp_endpoint,
+            insecure=config.otlp_insecure,
+        )
+        
+        # Add BatchLogRecordProcessor
+        _logger_provider.add_log_record_processor(
+            BatchLogRecordProcessor(otlp_log_exporter)
+        )
+        
+        # Create and add OTEL logging handler
+        otel_handler = LoggingHandler(
+            level=logging.NOTSET,
+            logger_provider=_logger_provider,
+        )
+        
+        # Add OTEL handler to root logger
+        root_logger.addHandler(otel_handler)
+        
+    except Exception as e:
+        # If OTLP setup fails, log warning but continue with console logging
+        print(f"Warning: Failed to setup OTLP log export: {e}", file=sys.stderr)
     
     _logger_initialized = True
 

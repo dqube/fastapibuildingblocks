@@ -212,9 +212,13 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
             if _redaction_filter and config and config.log_redaction_enabled:
                 log_data = _redaction_filter.redact_dict(log_data)
             
-            # Log request
+            # Create detailed log message with structured data embedded
+            import json
+            log_message = f"{method} {path} - {response.status_code} - {round(duration * 1000, 2)}ms | {json.dumps(log_data)}"
+            
+            # Log request with fields in both message and extra for flexibility
             logger.info(
-                f"{method} {path} - {response.status_code} - {round(duration * 1000, 2)}ms",
+                log_message,
                 extra={"extra_fields": log_data},
             )
             

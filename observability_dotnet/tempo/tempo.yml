@@ -1,5 +1,3 @@
-stream_over_http_enabled: true
-
 server:
   http_listen_port: 3200
 
@@ -12,33 +10,29 @@ distributor:
         grpc:
           endpoint: 0.0.0.0:4317
 
-ingester:
-  max_block_duration: 5m
-
 storage:
   trace:
     backend: local
+    local:
+      path: /tmp/tempo/traces
     wal:
       path: /tmp/tempo/wal
-    local:
-      path: /tmp/tempo/blocks
+    pool:
+      max_workers: 100
+      queue_depth: 10000
 
-overrides:
-  defaults:
-    metrics_generator:
-      processors:
-        - span-metrics
-        - service-graphs
-        - local-blocks
+query_frontend:
+  search:
+    duration_slo: 5s
+    throughput_bytes_slo: 1.073741824e+09
+  trace_by_id:
+    duration_slo: 5s
 
 metrics_generator:
-  ring:
-    kvstore:
-      store: inmemory
   registry:
     external_labels:
       source: tempo
-      cluster: fastapi-observability
+      cluster: aspirearch
   storage:
     path: /tmp/tempo/generator/traces
   traces_storage:
@@ -55,6 +49,3 @@ metrics_generator:
         - http.method
         - http.target
         - http.status_code
-    local_blocks:
-      flush_to_storage: true
-

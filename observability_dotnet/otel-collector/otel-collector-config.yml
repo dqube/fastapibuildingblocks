@@ -33,10 +33,10 @@ exporters:
     tls:
       insecure: true
 
-  # Export metrics to Prometheus
+  # Export metrics to Prometheus (via remote write or use prometheusremotewrite exporter)
   prometheus:
     endpoint: "0.0.0.0:8889"
-    namespace: otel
+    namespace: aspirearch
 
   # Debug exporter (optional - for troubleshooting)
   debug:

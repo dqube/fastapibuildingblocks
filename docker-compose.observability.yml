@@ -23,7 +23,7 @@ services:
 
   # Grafana Tempo - Distributed tracing backend  
   tempo:
-    image: grafana/tempo:2.4.2
+    image: grafana/tempo:2.7.0
     container_name: tempo
     user: root
     command: [ "-config.file=/etc/tempo.yaml" ]
@@ -102,6 +102,34 @@ services:
       - tempo
       - loki
       - prometheus
+    networks:
+      - observability
+
+  # FastAPI User Management Service
+  api:
+    build:
+      context: .
+      dockerfile: example_service/Dockerfile
+    image: user-management-service:latest
+    container_name: user-management-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PORT=8000
+      - OTEL_SERVICE_NAME=user-management-api
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317
+      - OTEL_EXPORTER_OTLP_INSECURE=true
+      - SENSITIVE_FIELD_KEYS=username,first_name,last_name,bio,phone,address,ssn,credit_card
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/users/')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    depends_on:
+      - otel-collector
     networks:
       - observability
 
