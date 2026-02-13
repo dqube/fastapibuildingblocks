@@ -5,16 +5,24 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel
 
+# Import Request from mediator to make queries compatible
+try:
+    from ..mediator.base import Request
+except ImportError:
+    # Fallback if mediator is not available
+    Request = BaseModel
+
 
 TResult = TypeVar("TResult")
 
 
-class Query(BaseModel, ABC):
+class Query(Request, ABC):
     """
     Base class for queries in the CQRS pattern.
     
     Queries represent read operations in the system. They request data
     without causing any side effects or state changes.
+    Queries are compatible with the mediator pattern.
     """
     
     class Config:

@@ -10,6 +10,7 @@ from .queries.base import Query, QueryHandler
 from .handlers.base import Handler
 from .services.base import ApplicationService
 from .dtos.base import DTO
+from .mediator import IMediator, Mediator, Request, RequestHandler, HandlerRegistry
 
 __all__ = [
     "Command",
@@ -19,4 +20,9 @@ __all__ = [
     "Handler",
     "ApplicationService",
     "DTO",
+    "IMediator",
+    "Mediator",
+    "Request",
+    "RequestHandler",
+    "HandlerRegistry",
 ]

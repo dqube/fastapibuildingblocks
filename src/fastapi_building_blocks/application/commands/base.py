@@ -5,16 +5,24 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel
 
+# Import Request from mediator to make commands compatible
+try:
+    from ..mediator.base import Request
+except ImportError:
+    # Fallback if mediator is not available
+    Request = BaseModel
+
 
 TResult = TypeVar("TResult")
 
 
-class Command(BaseModel, ABC):
+class Command(Request, ABC):
     """
     Base class for commands in the CQRS pattern.
     
     Commands represent write operations (create, update, delete) in the system.
     They express the intent to change the system state.
+    Commands are compatible with the mediator pattern.
     """
     
     class Config:

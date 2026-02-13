@@ -17,13 +17,7 @@ from ....application.queries.user_queries import (
     GetAllUsersQuery,
 )
 from ....application.dtos import UserDTO, CreateUserDTO, UpdateUserDTO
-from ...dependencies import (
-    CreateUserHandlerDep,
-    UpdateUserHandlerDep,
-    DeleteUserHandlerDep,
-    GetUserByIdHandlerDep,
-    GetAllUsersHandlerDep,
-)
+from ...dependencies import MediatorDep
 
 router = APIRouter()
 
@@ -37,14 +31,14 @@ router = APIRouter()
 )
 async def create_user(
     user_data: CreateUserDTO,
-    handler: CreateUserHandlerDep,
+    mediator: MediatorDep,
 ) -> SuccessResponse[UserDTO]:
     """
     Create a new user.
     
     Args:
         user_data: User creation data
-        handler: Create user command handler
+        mediator: Mediator instance for dispatching commands
         
     Returns:
         Success response with created user data
@@ -56,7 +50,7 @@ async def create_user(
         bio=user_data.bio,
     )
     
-    user = await handler.handle(command)
+    user = await mediator.send(command)
     
     return SuccessResponse.create(
         data=user,
@@ -72,14 +66,14 @@ async def create_user(
 )
 async def get_user(
     user_id: UUID,
-    handler: GetUserByIdHandlerDep,
+    mediator: MediatorDep,
 ) -> SuccessResponse[UserDTO]:
     """
     Get a user by ID.
     
     Args:
         user_id: User's unique identifier
-        handler: Get user by ID query handler
+        mediator: Mediator instance for dispatching queries
         
     Returns:
         Success response with user data
@@ -88,7 +82,7 @@ async def get_user(
         NotFoundException: If user not found
     """
     query = GetUserByIdQuery(user_id=user_id)
-    user = await handler.handle(query)
+    user = await mediator.send(query)
     
     if not user:
         raise NotFoundException(message=f"User with ID {user_id} not found")
@@ -106,7 +100,7 @@ async def get_user(
     description="Retrieve a list of all users with optional pagination",
 )
 async def get_all_users(
-    handler: GetAllUsersHandlerDep,
+    mediator: MediatorDep,
     skip: int = 0,
     limit: int = 100,
     active_only: bool = False,
@@ -115,10 +109,10 @@ async def get_all_users(
     Get all users.
     
     Args:
+        mediator: Mediator instance for dispatching queries
         skip: Number of users to skip (pagination)
         limit: Maximum number of users to return
         active_only: If True, return only active users
-        handler: Get all users query handler
         
     Returns:
         Success response with list of users
@@ -129,7 +123,7 @@ async def get_all_users(
         active_only=active_only,
     )
     
-    users = await handler.handle(query)
+    users = await mediator.send(query)
     
     return SuccessResponse.create(
         data=users,
@@ -146,7 +140,7 @@ async def get_all_users(
 async def update_user(
     user_id: UUID,
     user_data: UpdateUserDTO,
-    handler: UpdateUserHandlerDep,
+    mediator: MediatorDep,
 ) -> SuccessResponse[UserDTO]:
     """
     Update a user.
@@ -154,7 +148,7 @@ async def update_user(
     Args:
         user_id: User's unique identifier
         user_data: User update data
-        handler: Update user command handler
+        mediator: Mediator instance for dispatching commands
         
     Returns:
         Success response with updated user data
@@ -166,7 +160,7 @@ async def update_user(
         bio=user_data.bio,
     )
     
-    user = await handler.handle(command)
+    user = await mediator.send(command)
     
     return SuccessResponse.create(
         data=user,
@@ -182,21 +176,21 @@ async def update_user(
 )
 async def delete_user(
     user_id: UUID,
-    handler: DeleteUserHandlerDep,
+    mediator: MediatorDep,
 ) -> SuccessResponse[dict]:
     """
     Delete a user.
     
     Args:
         user_id: User's unique identifier
-        handler: Delete user command handler
+        mediator: Mediator instance for dispatching commands
         
     Returns:
         Success response confirming deletion
     """
     command = DeleteUserCommand(user_id=user_id)
     
-    await handler.handle(command)
+    await mediator.send(command)
     
     return SuccessResponse.create(
         data={"deleted": True},

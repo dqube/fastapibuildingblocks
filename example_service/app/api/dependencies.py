@@ -3,6 +3,7 @@
 from typing import Annotated
 
 from fastapi import Depends
+from fastapi_building_blocks.application import IMediator, Mediator
 
 from ..domain.repositories.user_repository import IUserRepository
 from ..infrastructure.repositories.user_repository import InMemoryUserRepository
@@ -15,6 +16,16 @@ from ..application.handlers.user_query_handlers import (
     GetUserByIdQueryHandler,
     GetUserByEmailQueryHandler,
     GetAllUsersQueryHandler,
+)
+from ..application.commands.user_commands import (
+    CreateUserCommand,
+    UpdateUserCommand,
+    DeleteUserCommand,
+)
+from ..application.queries.user_queries import (
+    GetUserByIdQuery,
+    GetUserByEmailQuery,
+    GetAllUsersQuery,
 )
 
 
@@ -97,3 +108,55 @@ GetUserByEmailHandlerDep = Annotated[
 GetAllUsersHandlerDep = Annotated[
     GetAllUsersQueryHandler, Depends(get_all_users_handler)
 ]
+
+
+# Mediator dependencies
+def get_mediator(
+    repository: UserRepositoryDep,
+) -> IMediator:
+    """
+    Get configured mediator instance.
+    
+    The mediator is configured with all command and query handlers
+    registered using factories to ensure proper dependency injection.
+    
+    Args:
+        repository: User repository instance
+        
+    Returns:
+        Configured mediator instance
+    """
+    mediator = Mediator()
+    
+    # Register command handlers
+    mediator.register_handler_factory(
+        CreateUserCommand,
+        lambda: CreateUserCommandHandler(repository)
+    )
+    mediator.register_handler_factory(
+        UpdateUserCommand,
+        lambda: UpdateUserCommandHandler(repository)
+    )
+    mediator.register_handler_factory(
+        DeleteUserCommand,
+        lambda: DeleteUserCommandHandler(repository)
+    )
+    
+    # Register query handlers
+    mediator.register_handler_factory(
+        GetUserByIdQuery,
+        lambda: GetUserByIdQueryHandler(repository)
+    )
+    mediator.register_handler_factory(
+        GetUserByEmailQuery,
+        lambda: GetUserByEmailQueryHandler(repository)
+    )
+    mediator.register_handler_factory(
+        GetAllUsersQuery,
+        lambda: GetAllUsersQueryHandler(repository)
+    )
+    
+    return mediator
+
+
+MediatorDep = Annotated[IMediator, Depends(get_mediator)]

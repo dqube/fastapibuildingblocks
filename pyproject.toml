@@ -53,6 +53,9 @@ Homepage = "https://github.com/yourusername/fastapi-building-blocks"
 Repository = "https://github.com/yourusername/fastapi-building-blocks"
 Documentation = "https://github.com/yourusername/fastapi-building-blocks/blob/main/README.md"
 
+[project.scripts]
+fastapi-bb = "fastapi_building_blocks.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
