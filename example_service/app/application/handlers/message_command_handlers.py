@@ -4,8 +4,8 @@ from uuid import uuid4
 from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi_building_blocks.application import CommandHandler
-from fastapi_building_blocks.infrastructure.messaging.base import IEventPublisher
+from building_blocks.application import CommandHandler
+from building_blocks.infrastructure.messaging.base import IEventPublisher
 
 from ...domain.events.message_events import MessageSentIntegrationEvent
 from ..commands.message_commands import SendMessageCommand

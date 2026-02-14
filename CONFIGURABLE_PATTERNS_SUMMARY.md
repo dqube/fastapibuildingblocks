@@ -177,14 +177,14 @@ config = KafkaConfig(
 ## Files Modified/Created
 
 ### Modified:
-- `src/fastapi_building_blocks/infrastructure/messaging/kafka_config.py` - Added enable_outbox and enable_inbox fields
-- `src/fastapi_building_blocks/infrastructure/messaging/inbox_consumer.py` - Added conditional inbox logic
-- `src/fastapi_building_blocks/infrastructure/messaging/__init__.py` - Exported new factory
+- `src/building_blocks/infrastructure/messaging/kafka_config.py` - Added enable_outbox and enable_inbox fields
+- `src/building_blocks/infrastructure/messaging/inbox_consumer.py` - Added conditional inbox logic
+- `src/building_blocks/infrastructure/messaging/__init__.py` - Exported new factory
 - `README.md` - Added configuration documentation
 - `INBOX_OUTBOX_PATTERN.md` - Updated with configuration examples
 
 ### Created:
-- `src/fastapi_building_blocks/infrastructure/messaging/publisher_factory.py` - Publisher factory
+- `src/building_blocks/infrastructure/messaging/publisher_factory.py` - Publisher factory
 - `example_configurable_inbox_outbox.py` - Complete working examples
 - `INBOX_OUTBOX_CONFIG.md` - Detailed configuration guide
 

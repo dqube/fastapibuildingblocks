@@ -33,7 +33,7 @@ config = KafkaConfig()  # Loads from environment
 #### 2. Direct Configuration
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import KafkaConfig
+from building_blocks.infrastructure.messaging import KafkaConfig
 
 config = KafkaConfig(
     enable_outbox=True,
@@ -190,7 +190,7 @@ CREATE TABLE inbox_messages (
 The factory automatically chooses the right publisher:
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import create_event_publisher
+from building_blocks.infrastructure.messaging import create_event_publisher
 
 # Auto-selects outbox or direct based on config
 publisher = create_event_publisher(
@@ -206,14 +206,14 @@ await publisher.publish(event)
 ```python
 if config.enable_outbox:
     # Requires session
-    from fastapi_building_blocks.infrastructure.messaging import OutboxEventPublisher
-    from fastapi_building_blocks.infrastructure.persistence.outbox import OutboxRepository
+    from building_blocks.infrastructure.messaging import OutboxEventPublisher
+    from building_blocks.infrastructure.persistence.outbox import OutboxRepository
     
     repository = OutboxRepository(session)
     publisher = OutboxEventPublisher(repository, "my-service")
 else:
     # No session required
-    from fastapi_building_blocks.infrastructure.messaging import KafkaIntegrationEventPublisher
+    from building_blocks.infrastructure.messaging import KafkaIntegrationEventPublisher
     
     publisher = KafkaIntegrationEventPublisher(config, "my-service")
 ```
@@ -223,7 +223,7 @@ else:
 ### With Inbox Pattern
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import InboxIntegrationEventConsumer
+from building_blocks.infrastructure.messaging import InboxIntegrationEventConsumer
 
 consumer = InboxIntegrationEventConsumer(
     kafka_config=config,
@@ -242,13 +242,13 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.infrastructure.messaging import (
     KafkaConfig,
     create_event_publisher,
     OutboxRelay,
 )
-from fastapi_building_blocks.infrastructure.persistence.outbox import CREATE_OUTBOX_TABLE_SQL
-from fastapi_building_blocks.infrastructure.persistence.inbox import CREATE_INBOX_TABLE_SQL
+from building_blocks.infrastructure.persistence.outbox import CREATE_OUTBOX_TABLE_SQL
+from building_blocks.infrastructure.persistence.inbox import CREATE_INBOX_TABLE_SQL
 
 # Load configuration from environment
 def get_config():

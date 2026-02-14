@@ -334,7 +334,7 @@ def setup_observability(app: FastAPI, config: ObservabilityConfig) -> None:
         
     Example:
         from fastapi import FastAPI
-        from fastapi_building_blocks.observability import setup_observability, ObservabilityConfig
+        from building_blocks.observability import setup_observability, ObservabilityConfig
         
         app = FastAPI()
         config = ObservabilityConfig(

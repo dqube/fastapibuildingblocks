@@ -61,7 +61,7 @@ The redaction filter automatically masks:
 ## 📝 Configuration Options
 
 ```python
-from fastapi_building_blocks.observability import ObservabilityConfig
+from building_blocks.observability import ObservabilityConfig
 
 config = ObservabilityConfig(
     service_name="my-service",
@@ -80,7 +80,7 @@ config = ObservabilityConfig(
 
 ### Example 1: Basic Usage
 ```python
-from fastapi_building_blocks.observability import setup_logging, get_logger, ObservabilityConfig
+from building_blocks.observability import setup_logging, get_logger, ObservabilityConfig
 
 # Setup with default redaction
 config = ObservabilityConfig(
@@ -159,21 +159,21 @@ logger.info("Calling API: https://api.example.com/data?api_key=sk_live_123456789
 
 ### Components Created
 
-1. **`/src/fastapi_building_blocks/observability/redaction.py`** (300+ lines)
+1. **`/src/building_blocks/observability/redaction.py`** (300+ lines)
    - `RedactionFilter` class with recursive redaction logic
    - `DEFAULT_SENSITIVE_PATTERNS` - 30+ predefined patterns
    - `create_redaction_filter()` helper function
 
-2. **Updated `/src/fastapi_building_blocks/observability/config.py`**
+2. **Updated `/src/building_blocks/observability/config.py`**
    - Added 5 new configuration fields for redaction
    - Enabled by default for security
 
-3. **Updated `/src/fastapi_building_blocks/observability/logging.py`**
+3. **Updated `/src/building_blocks/observability/logging.py`**
    - Integrated `RedactionFilter` into `JsonFormatter`
    - Integrated `RedactionFilter` into `TextFormatter`
    - Initialized filter in `setup_logging()`
 
-4. **Updated `/src/fastapi_building_blocks/observability/__init__.py`**
+4. **Updated `/src/building_blocks/observability/__init__.py`**
    - Exported redaction utilities for external use
 
 5. **Created `/tests/test_redaction.py`**
@@ -237,4 +237,4 @@ logger.info("Calling API: https://api.example.com/data?api_key=sk_live_123456789
 
 - Test file: [tests/test_redaction.py](tests/test_redaction.py)
 - Demo script: [demo_redaction.py](demo_redaction.py)
-- Implementation: [src/fastapi_building_blocks/observability/redaction.py](src/fastapi_building_blocks/observability/redaction.py)
+- Implementation: [src/building_blocks/observability/redaction.py](src/building_blocks/observability/redaction.py)

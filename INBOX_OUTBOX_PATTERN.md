@@ -18,7 +18,7 @@ The Inbox/Outbox pattern solves critical problems in event-driven microservices:
 **The inbox and outbox patterns are now fully configurable!** You can enable or disable them independently:
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import KafkaConfig
+from building_blocks.infrastructure.messaging import KafkaConfig
 
 # Option 1: Direct publishing (no outbox, no inbox)
 config = KafkaConfig(
@@ -204,7 +204,7 @@ CREATE INDEX ix_inbox_topic_partition_offset ON inbox_messages(topic, partition,
 The easiest way to use the patterns is via the publisher factory:
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.infrastructure.messaging import (
     KafkaConfig,
     create_event_publisher,
 )
@@ -233,7 +233,7 @@ async with get_session() as session:
 #### 1. Setup Database
 
 ```python
-from fastapi_building_blocks.infrastructure.persistence.outbox import (
+from building_blocks.infrastructure.persistence.outbox import (
     CREATE_OUTBOX_TABLE_SQL
 )
 
@@ -244,8 +244,8 @@ await session.execute(CREATE_OUTBOX_TABLE_SQL)
 #### 2. Use Outbox Publisher
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import OutboxEventPublisher
-from fastapi_building_blocks.infrastructure.persistence.outbox import OutboxRepository
+from building_blocks.infrastructure.messaging import OutboxEventPublisher
+from building_blocks.infrastructure.persistence.outbox import OutboxRepository
 
 # In your endpoint/handler
 async def create_user(command: CreateUserCommand, session: Session):
@@ -275,8 +275,8 @@ async def create_user(command: CreateUserCommand, session: Session):
 #### 3. Start Outbox Relay Worker
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import OutboxRelay
-from fastapi_building_blocks.infrastructure.messaging import KafkaConfig
+from building_blocks.infrastructure.messaging import OutboxRelay
+from building_blocks.infrastructure.messaging import KafkaConfig
 
 # Configure
 config = KafkaConfig(
@@ -336,7 +336,7 @@ if config.enable_inbox:
     #### 1. Setup Database
 
 ```python
-from fastapi_building_blocks.infrastructure.persistence.inbox import (
+from building_blocks.infrastructure.persistence.inbox import (
     CREATE_INBOX_TABLE_SQL
 )
 
@@ -347,7 +347,7 @@ await session.execute(CREATE_INBOX_TABLE_SQL)
 #### 2. Define Handler
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.infrastructure.messaging import (
     InboxIntegrationEventHandler
 )
 
@@ -450,7 +450,7 @@ async def lifespan(app: FastAPI):
     # Start outbox relay only if enabled
     relay = None
     if config.enable_outbox:
-        from fastapi_building_blocks.infrastructure.messaging import OutboxRelay
+        from building_blocks.infrastructure.messaging import OutboxRelay
         relay = OutboxRelay(config, session_factory)
         await relay.start()
     
@@ -512,7 +512,7 @@ async def create_user(
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.infrastructure.messaging import (
     InboxIntegrationEventConsumer,
     InboxIntegrationEventHandler,
     KafkaConfig,
@@ -550,8 +550,8 @@ app = FastAPI(lifespan=lifespan)
 ### Cleanup Old Messages
 
 ```python
-from fastapi_building_blocks.infrastructure.persistence.outbox import OutboxRepository
-from fastapi_building_blocks.infrastructure.persistence.inbox import InboxRepository
+from building_blocks.infrastructure.persistence.outbox import OutboxRepository
+from building_blocks.infrastructure.persistence.inbox import InboxRepository
 
 async def cleanup_old_messages():
     async with session_factory() as session:

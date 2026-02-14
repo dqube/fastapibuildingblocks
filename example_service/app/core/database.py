@@ -3,7 +3,7 @@
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi_building_blocks.infrastructure import SQLAlchemySession
+from building_blocks.infrastructure import SQLAlchemySession
 
 from .config import settings
 

@@ -10,15 +10,15 @@ import asyncio
 from uuid import uuid4
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
-from fastapi_building_blocks.domain.events.integration_event import IntegrationEvent
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.domain.events.integration_event import IntegrationEvent
+from building_blocks.infrastructure.messaging import (
     KafkaConfig,
     OutboxEventPublisher,
     OutboxRelay,
     InboxIntegrationEventConsumer,
     InboxIntegrationEventHandler,
 )
-from fastapi_building_blocks.infrastructure.persistence.outbox import OutboxRepository
+from building_blocks.infrastructure.persistence.outbox import OutboxRepository
 
 
 # ============================================================================

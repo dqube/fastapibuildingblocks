@@ -8,7 +8,7 @@ from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from fastapi_building_blocks.infrastructure import SQLAlchemyRepository, Base
+from building_blocks.infrastructure import SQLAlchemyRepository, Base
 
 from ...domain.models.user import User, Email, UserProfile
 from ...domain.repositories.user_repository import IUserRepository

@@ -17,12 +17,12 @@ from contextlib import asynccontextmanager
 from uuid import uuid4
 
 from fastapi import FastAPI, Depends
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-from fastapi_building_blocks.domain.events.integration_event import IntegrationEvent
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.domain.events.integration_event import IntegrationEvent
+from building_blocks.infrastructure.messaging import (
     KafkaConfig,
     create_event_publisher,
     IntegrationEventPublisherFactory,
@@ -30,11 +30,11 @@ from fastapi_building_blocks.infrastructure.messaging import (
     InboxIntegrationEventHandler,
     OutboxRelay,
 )
-from fastapi_building_blocks.infrastructure.persistence.outbox import (
+from building_blocks.infrastructure.persistence.outbox import (
     OutboxMessage,
     CREATE_OUTBOX_TABLE_SQL,
 )
-from fastapi_building_blocks.infrastructure.persistence.inbox import (
+from building_blocks.infrastructure.persistence.inbox import (
     InboxMessage,
     CREATE_INBOX_TABLE_SQL,
 )
@@ -117,7 +117,7 @@ def get_config_from_env():
 # ============================================================================
 
 # Database connection
-DATABASE_URL = "postgresql+asyncpg://user:password@localhost/mydb"
+DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/user_management"
 
 async_engine = create_async_engine(DATABASE_URL, echo=True)
 async_session_factory = async_sessionmaker(
@@ -131,11 +131,19 @@ async def init_database(enable_outbox: bool, enable_inbox: bool):
     """Initialize database tables based on configuration."""
     async with async_engine.begin() as conn:
         if enable_outbox:
-            await conn.execute(CREATE_OUTBOX_TABLE_SQL)
+            # Split SQL into individual statements and execute them
+            for statement in CREATE_OUTBOX_TABLE_SQL.strip().split(';'):
+                statement = statement.strip()
+                if statement:
+                    await conn.execute(text(statement))
             print("✅ Created outbox_messages table")
         
         if enable_inbox:
-            await conn.execute(CREATE_INBOX_TABLE_SQL)
+            # Split SQL into individual statements and execute them
+            for statement in CREATE_INBOX_TABLE_SQL.strip().split(';'):
+                statement = statement.strip()
+                if statement:
+                    await conn.execute(text(statement))
             print("✅ Created inbox_messages table")
 
 

@@ -10,7 +10,7 @@ from pathlib import Path
 # Add example_service to path
 sys.path.insert(0, str(Path(__file__).parent / "example_service"))
 
-from fastapi_building_blocks.application import Mediator
+from building_blocks.application import Mediator
 from example_service.app.application.commands.user_commands import (
     CreateUserCommand,
     UpdateUserCommand,

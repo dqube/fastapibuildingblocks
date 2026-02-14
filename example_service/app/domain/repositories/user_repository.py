@@ -3,7 +3,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi_building_blocks.domain import IRepository
+from building_blocks.domain import IRepository
 from ..models.user import User
 
 

@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
-from fastapi_building_blocks.domain.events.integration_event import IntegrationEvent
+from building_blocks.domain.events.integration_event import IntegrationEvent
 
 
 class MessageSentIntegrationEvent(IntegrationEvent):

@@ -19,7 +19,7 @@ This is similar to ASP.NET Core's middleware logging capabilities.
 
 ```python
 from fastapi import FastAPI
-from fastapi_building_blocks.observability import (
+from building_blocks.observability import (
     setup_observability,
     ObservabilityConfig,
 )

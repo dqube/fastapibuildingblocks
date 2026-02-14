@@ -4,9 +4,9 @@ from typing import Annotated, Optional
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi_building_blocks.application import IMediator, Mediator
-from fastapi_building_blocks.infrastructure.messaging.base import IEventPublisher
-from fastapi_building_blocks.infrastructure.messaging import create_event_publisher
+from building_blocks.application import IMediator, Mediator
+from building_blocks.infrastructure.messaging.base import IEventPublisher
+from building_blocks.infrastructure.messaging import create_event_publisher
 
 from ..core.database import get_db
 from ..core.config import kafka_config

@@ -7,7 +7,7 @@ Complete implementation of reusable FastAPI building blocks following Domain-Dri
 ### 1. **fastapi-building-blocks** Package
 A reusable Python package providing base classes and utilities for building FastAPI applications with clean DDD architecture.
 
-**Location**: `src/fastapi_building_blocks/`
+**Location**: `src/building_blocks/`
 
 **Layers**:
 - **Domain**: Entities, Value Objects, Aggregates, Domain Events, Repository Interfaces
@@ -98,7 +98,7 @@ curl "http://localhost:8000/api/v1/users/"
 
 ```
 fastapibuildingblocks/
-├── src/fastapi_building_blocks/     # Building blocks package
+├── src/building_blocks/     # Building blocks package
 │   ├── domain/                       # Domain layer base classes
 │   ├── application/                  # Application layer base classes
 │   ├── infrastructure/               # Infrastructure layer base classes
@@ -210,7 +210,7 @@ pip install fastapi-building-blocks
 
 2. **Create your domain model**:
 ```python
-from fastapi_building_blocks.domain import AggregateRoot, ValueObject
+from building_blocks.domain import AggregateRoot, ValueObject
 
 class Email(ValueObject):
     value: str
@@ -222,7 +222,7 @@ class User(AggregateRoot):
 
 3. **Create commands and handlers**:
 ```python
-from fastapi_building_blocks.application import Command, CommandHandler
+from building_blocks.application import Command, CommandHandler
 
 class CreateUserCommand(Command):
     email: str
@@ -237,7 +237,7 @@ class CreateUserHandler(CommandHandler):
 4. **Create API endpoints**:
 ```python
 from fastapi import APIRouter
-from fastapi_building_blocks.api.responses import SuccessResponse
+from building_blocks.api.responses import SuccessResponse
 
 router = APIRouter()
 

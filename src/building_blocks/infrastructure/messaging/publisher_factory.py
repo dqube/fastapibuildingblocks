@@ -115,8 +115,7 @@ class IntegrationEventPublisherFactory:
             # Reuse the same publisher instance
             if self._direct_publisher is None:
                 self._direct_publisher = KafkaIntegrationEventPublisher(
-                    kafka_config=self.kafka_config,
-                    service_name=service_name,
+                    config=self.kafka_config,
                 )
             
             if logger:

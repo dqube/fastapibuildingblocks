@@ -11,7 +11,7 @@ from .api.v1.api import api_router
 
 # Import observability (optional - gracefully handle if not installed)
 try:
-    from fastapi_building_blocks.observability import (
+    from building_blocks.observability import (
         setup_observability,
         ObservabilityConfig,
     )
@@ -22,7 +22,7 @@ except ImportError:
 
 # Import Kafka (optional - gracefully handle if not installed)
 try:
-    from fastapi_building_blocks.infrastructure.messaging import (
+    from building_blocks.infrastructure.messaging import (
         KafkaConfig,
         create_event_publisher,
         InboxIntegrationEventConsumer,

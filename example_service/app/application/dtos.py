@@ -5,7 +5,7 @@ from typing import Optional
 from uuid import UUID
 
 from pydantic import Field, EmailStr
-from fastapi_building_blocks.application import DTO
+from building_blocks.application import DTO
 
 
 class UserDTO(DTO):

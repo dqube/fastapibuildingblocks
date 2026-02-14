@@ -18,7 +18,7 @@ def test_imports():
     print("🧪 Testing imports...")
     
     try:
-        from fastapi_building_blocks.observability import (
+        from building_blocks.observability import (
             ObservabilityConfig,
             setup_tracing,
             get_tracer,
@@ -42,7 +42,7 @@ def test_configuration():
     print("\n🧪 Testing configuration...")
     
     try:
-        from fastapi_building_blocks.observability import ObservabilityConfig
+        from building_blocks.observability import ObservabilityConfig
         
         config = ObservabilityConfig(
             service_name="test-service",
@@ -69,7 +69,7 @@ def test_tracing():
     print("\n🧪 Testing tracing...")
     
     try:
-        from fastapi_building_blocks.observability import (
+        from building_blocks.observability import (
             ObservabilityConfig,
             setup_tracing,
             get_tracer,
@@ -111,7 +111,7 @@ def test_logging():
     print("\n🧪 Testing logging...")
     
     try:
-        from fastapi_building_blocks.observability import (
+        from building_blocks.observability import (
             ObservabilityConfig,
             setup_logging,
             get_logger,
@@ -143,7 +143,7 @@ def test_metrics():
     print("\n🧪 Testing metrics...")
     
     try:
-        from fastapi_building_blocks.observability import (
+        from building_blocks.observability import (
             ObservabilityConfig,
             setup_metrics,
             get_metrics,
@@ -181,12 +181,12 @@ def test_mediator_instrumentation():
     print("\n🧪 Testing mediator instrumentation...")
     
     try:
-        from fastapi_building_blocks.application.mediator import (
+        from building_blocks.application.mediator import (
             Mediator,
             Request,
             RequestHandler,
         )
-        from fastapi_building_blocks.observability import ObservabilityConfig, setup_tracing
+        from building_blocks.observability import ObservabilityConfig, setup_tracing
         
         # Setup observability
         config = ObservabilityConfig(service_name="test-service")
@@ -225,7 +225,7 @@ def test_fastapi_integration():
     
     try:
         from fastapi import FastAPI
-        from fastapi_building_blocks.observability import (
+        from building_blocks.observability import (
             setup_observability,
             ObservabilityConfig,
         )

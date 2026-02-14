@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 # Add src to path
 sys.path.insert(0, '/Users/mdevendran/python/fastapibuildingblocks')
 
-from src.fastapi_building_blocks.observability import (
+from src.building_blocks.observability import (
     setup_observability,
     ObservabilityConfig,
 )

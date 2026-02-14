@@ -6,7 +6,7 @@ from fastapi import FastAPI, Request
 from pydantic import BaseModel
 import uvicorn
 
-from src.fastapi_building_blocks.observability import (
+from src.building_blocks.observability import (
     setup_observability,
     ObservabilityConfig,
 )

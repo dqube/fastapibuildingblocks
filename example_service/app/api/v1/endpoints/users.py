@@ -4,8 +4,8 @@ from typing import List
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, status
-from fastapi_building_blocks.api.responses import SuccessResponse, ErrorResponse
-from fastapi_building_blocks.api.exceptions import NotFoundException
+from building_blocks.api.responses import SuccessResponse, ErrorResponse
+from building_blocks.api.exceptions import NotFoundException
 
 from ....application.commands.user_commands import (
     CreateUserCommand,

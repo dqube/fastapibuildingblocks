@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 
-from fastapi_building_blocks.infrastructure.messaging import InboxIntegrationEventHandler
+from building_blocks.infrastructure.messaging import InboxIntegrationEventHandler
 
 from ...domain.events.message_events import MessageSentIntegrationEvent
 from ...domain.entities.message import Message
@@ -12,7 +12,7 @@ from ...infrastructure.persistence.repositories.message_repository import Messag
 
 # Import observability modules (optional)
 try:
-    from fastapi_building_blocks.observability.logging import get_logger
+    from building_blocks.observability.logging import get_logger
     OBSERVABILITY_AVAILABLE = True
 except ImportError:
     OBSERVABILITY_AVAILABLE = False

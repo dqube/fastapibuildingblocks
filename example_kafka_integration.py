@@ -14,9 +14,9 @@ from datetime import datetime
 from typing import List
 from uuid import UUID, uuid4
 
-from fastapi_building_blocks.domain.events import DomainEvent, IntegrationEvent
-from fastapi_building_blocks.application.mediator import Mediator, Request, RequestHandler
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.domain.events import DomainEvent, IntegrationEvent
+from building_blocks.application.mediator import Mediator, Request, RequestHandler
+from building_blocks.infrastructure.messaging import (
     KafkaConfig,
     KafkaIntegrationEventPublisher,
     KafkaIntegrationEventConsumer,

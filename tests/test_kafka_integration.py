@@ -8,12 +8,12 @@ import pytest
 from datetime import datetime
 from uuid import uuid4
 
-from fastapi_building_blocks.domain.events import (
+from building_blocks.domain.events import (
     DomainEvent,
     IntegrationEvent,
     IntegrationEventEnvelope,
 )
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.infrastructure.messaging import (
     EventMapper,
     IntegrationEventFactory,
     KafkaConfig,
@@ -331,7 +331,7 @@ class TestKafkaConfig:
 @pytest.mark.asyncio
 async def test_kafka_producer_connection():
     """Test Kafka producer connection (requires running Kafka)."""
-    from fastapi_building_blocks.infrastructure.messaging import (
+    from building_blocks.infrastructure.messaging import (
         KafkaIntegrationEventPublisher,
     )
     
@@ -351,7 +351,7 @@ async def test_kafka_producer_connection():
 @pytest.mark.asyncio
 async def test_publish_and_consume_event():
     """Test publishing and consuming an event (requires running Kafka)."""
-    from fastapi_building_blocks.infrastructure.messaging import (
+    from building_blocks.infrastructure.messaging import (
         KafkaIntegrationEventPublisher,
         KafkaIntegrationEventConsumer,
         IntegrationEventHandler,

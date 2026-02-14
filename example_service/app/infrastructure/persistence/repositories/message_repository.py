@@ -9,7 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi_building_blocks.infrastructure import SQLAlchemyRepository, Base
+from building_blocks.infrastructure import SQLAlchemyRepository, Base
 from ....domain.entities.message import Message
 
 

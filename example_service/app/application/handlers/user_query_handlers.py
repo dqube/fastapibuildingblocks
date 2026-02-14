@@ -2,8 +2,8 @@
 
 from typing import List, Optional
 
-from fastapi_building_blocks.application import QueryHandler
-from fastapi_building_blocks.api.exceptions import NotFoundException
+from building_blocks.application import QueryHandler
+from building_blocks.api.exceptions import NotFoundException
 
 from ...domain.repositories.user_repository import IUserRepository
 from ..queries.user_queries import (

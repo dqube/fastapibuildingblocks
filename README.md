@@ -236,7 +236,7 @@ Features:
 Control reliability patterns via configuration:
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.infrastructure.messaging import (
     KafkaConfig,
     create_event_publisher,
 )
@@ -273,8 +273,8 @@ See [INBOX_OUTBOX_CONFIG.md](INBOX_OUTBOX_CONFIG.md) for configuration guide and
 ### Quick Example
 
 ```python
-from fastapi_building_blocks.domain.events import IntegrationEvent
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.domain.events import IntegrationEvent
+from building_blocks.infrastructure.messaging import (
     create_event_publisher,
     create_integration_event_mediator,
 )
@@ -303,8 +303,8 @@ See [KAFKA_INTEGRATION.md](KAFKA_INTEGRATION.md) for complete documentation or [
 
 ```python
 from fastapi import FastAPI, Depends
-from fastapi_building_blocks.application.mediator import Mediator, Command, Query
-from fastapi_building_blocks.api.dependencies import MediatorDep
+from building_blocks.application.mediator import Mediator, Command, Query
+from building_blocks.api.dependencies import MediatorDep
 
 # Define a command
 class CreateUserCommand(Command):
@@ -331,7 +331,7 @@ async def create_user(
 
 ```python
 from fastapi import FastAPI
-from fastapi_building_blocks.observability import (
+from building_blocks.observability import (
     setup_observability,
     ObservabilityConfig,
 )
@@ -385,10 +385,10 @@ pip install -e ".[messaging]"
 ## Usage
 
 ```python
-from fastapi_building_blocks.domain.entities import BaseEntity
-from fastapi_building_blocks.application.commands import Command
-from fastapi_building_blocks.infrastructure.persistence.repositories import BaseRepository
-from fastapi_building_blocks.api.responses import SuccessResponse
+from building_blocks.domain.entities import BaseEntity
+from building_blocks.application.commands import Command
+from building_blocks.infrastructure.persistence.repositories import BaseRepository
+from building_blocks.api.responses import SuccessResponse
 
 # Create your domain entities
 class User(BaseEntity):
@@ -410,7 +410,7 @@ class UserRepository(BaseRepository[User]):
 ## Project Structure
 
 ```
-src/fastapi_building_blocks/
+src/building_blocks/
 ├── domain/              # Core business logic
 ├── application/         # Use cases and orchestration
 ├── infrastructure/      # Technical implementations

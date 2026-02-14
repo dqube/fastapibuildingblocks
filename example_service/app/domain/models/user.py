@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-from fastapi_building_blocks.domain import AggregateRoot, ValueObject
+from building_blocks.domain import AggregateRoot, ValueObject
 from pydantic import EmailStr, Field, field_validator
 
 from ..events.user_events import UserCreatedEvent, UserUpdatedEvent, UserDeletedEvent

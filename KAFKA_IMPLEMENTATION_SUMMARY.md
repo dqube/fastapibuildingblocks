@@ -7,7 +7,7 @@ Successfully implemented Kafka integration events similar to Wolverine's integra
 ## What Was Implemented
 
 ### 1. Integration Event Base Classes
-**File**: `src/fastapi_building_blocks/domain/events/integration_event.py`
+**File**: `src/building_blocks/domain/events/integration_event.py`
 
 - `IntegrationEvent`: Base class for all integration events
   - Event metadata (event_id, occurred_at, event_type, event_version)
@@ -23,7 +23,7 @@ Successfully implemented Kafka integration events similar to Wolverine's integra
   - Content type and schema versioning
 
 ### 2. Kafka Configuration
-**File**: `src/fastapi_building_blocks/infrastructure/messaging/kafka_config.py`
+**File**: `src/building_blocks/infrastructure/messaging/kafka_config.py`
 
 - `KafkaConfig`: Comprehensive configuration using Pydantic Settings
   - Connection settings (bootstrap servers, security)
@@ -34,7 +34,7 @@ Successfully implemented Kafka integration events similar to Wolverine's integra
   - Helper methods for producer/consumer config dictionaries
 
 ### 3. Kafka Producer
-**File**: `src/fastapi_building_blocks/infrastructure/messaging/kafka_producer.py`
+**File**: `src/building_blocks/infrastructure/messaging/kafka_producer.py`
 
 - `KafkaIntegrationEventPublisher`: Async Kafka producer
   - Implements `IEventPublisher` interface
@@ -48,7 +48,7 @@ Successfully implemented Kafka integration events similar to Wolverine's integra
   - Context manager support
 
 ### 4. Kafka Consumer
-**File**: `src/fastapi_building_blocks/infrastructure/messaging/kafka_consumer.py`
+**File**: `src/building_blocks/infrastructure/messaging/kafka_consumer.py`
 
 - `IntegrationEventHandler`: Base class for event handlers
 - `KafkaIntegrationEventConsumer`: Async Kafka consumer
@@ -62,7 +62,7 @@ Successfully implemented Kafka integration events similar to Wolverine's integra
   - Background consumption loop
 
 ### 5. Event Mapping
-**File**: `src/fastapi_building_blocks/infrastructure/messaging/event_mapper.py`
+**File**: `src/building_blocks/infrastructure/messaging/event_mapper.py`
 
 - `EventMapper`: Maps domain events to integration events
   - Simple 1-to-1 mappings
@@ -75,7 +75,7 @@ Successfully implemented Kafka integration events similar to Wolverine's integra
   - Automatic correlation tracking
 
 ### 6. Mediator Integration
-**File**: `src/fastapi_building_blocks/infrastructure/messaging/integration_middleware.py`
+**File**: `src/building_blocks/infrastructure/messaging/integration_middleware.py`
 
 - `IntegrationEventPublishingBehavior`: Middleware for automatic publishing
   - Intercepts mediator requests
@@ -151,10 +151,10 @@ Successfully implemented Kafka integration events similar to Wolverine's integra
 - Updated messaging optional dependencies
 
 #### Exports
-**File**: `src/fastapi_building_blocks/infrastructure/messaging/__init__.py`
+**File**: `src/building_blocks/infrastructure/messaging/__init__.py`
 - Exported all Kafka components
 
-**File**: `src/fastapi_building_blocks/domain/events/__init__.py`
+**File**: `src/building_blocks/domain/events/__init__.py`
 - Exported IntegrationEvent and IntegrationEventEnvelope
 
 #### Documentation
@@ -320,12 +320,12 @@ Potential enhancements:
 
 ## Files Created
 
-1. `src/fastapi_building_blocks/domain/events/integration_event.py`
-2. `src/fastapi_building_blocks/infrastructure/messaging/kafka_config.py`
-3. `src/fastapi_building_blocks/infrastructure/messaging/kafka_producer.py`
-4. `src/fastapi_building_blocks/infrastructure/messaging/kafka_consumer.py`
-5. `src/fastapi_building_blocks/infrastructure/messaging/event_mapper.py`
-6. `src/fastapi_building_blocks/infrastructure/messaging/integration_middleware.py`
+1. `src/building_blocks/domain/events/integration_event.py`
+2. `src/building_blocks/infrastructure/messaging/kafka_config.py`
+3. `src/building_blocks/infrastructure/messaging/kafka_producer.py`
+4. `src/building_blocks/infrastructure/messaging/kafka_consumer.py`
+5. `src/building_blocks/infrastructure/messaging/event_mapper.py`
+6. `src/building_blocks/infrastructure/messaging/integration_middleware.py`
 7. `KAFKA_INTEGRATION.md`
 8. `KAFKA_QUICKSTART.md`
 9. `example_kafka_integration.py`
@@ -335,8 +335,8 @@ Potential enhancements:
 ## Files Modified
 
 1. `pyproject.toml` - Added dependencies
-2. `src/fastapi_building_blocks/domain/events/__init__.py` - Exported integration events
-3. `src/fastapi_building_blocks/infrastructure/messaging/__init__.py` - Exported Kafka components
+2. `src/building_blocks/domain/events/__init__.py` - Exported integration events
+3. `src/building_blocks/infrastructure/messaging/__init__.py` - Exported Kafka components
 4. `README.md` - Added Kafka documentation
 
 ## Total Lines of Code

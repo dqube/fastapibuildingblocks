@@ -3,7 +3,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi_building_blocks.application import Command
+from building_blocks.application import Command
 
 
 class CreateUserCommand(Command):

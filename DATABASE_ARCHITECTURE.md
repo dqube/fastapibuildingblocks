@@ -8,7 +8,7 @@ The application now uses a properly layered architecture with database-agnostic 
 
 ### 1. Building Blocks Infrastructure (Generic/Reusable)
 
-Located in `src/fastapi_building_blocks/infrastructure/`:
+Located in `src/building_blocks/infrastructure/`:
 
 #### Database Session Management
 - **`database/session.py`**: Abstract `DatabaseSession` base class
@@ -114,9 +114,9 @@ DATABASE_URL = "sqlite+aiosqlite:///./database.db"
 ## Files Modified
 
 ### Building Blocks (Generic Infrastructure)
-- `src/fastapi_building_blocks/infrastructure/database/sqlalchemy_session.py` ✨ NEW
-- `src/fastapi_building_blocks/infrastructure/persistence/repositories/sqlalchemy_repository.py` ✨ NEW
-- `src/fastapi_building_blocks/infrastructure/__init__.py` (exports updated)
+- `src/building_blocks/infrastructure/database/sqlalchemy_session.py` ✨ NEW
+- `src/building_blocks/infrastructure/persistence/repositories/sqlalchemy_repository.py` ✨ NEW
+- `src/building_blocks/infrastructure/__init__.py` (exports updated)
 
 ### Example Service (Domain-Specific)
 - `example_service/app/core/database.py` (refactored to use building blocks)

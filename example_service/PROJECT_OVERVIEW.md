@@ -273,7 +273,7 @@ Replace `InMemoryUserRepository` with a database implementation:
 
 ```python
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi_building_blocks.infrastructure import BaseRepository
+from building_blocks.infrastructure import BaseRepository
 
 class SQLAlchemyUserRepository(BaseRepository[User], IUserRepository):
     def __init__(self, session: AsyncSession):
@@ -289,7 +289,7 @@ class SQLAlchemyUserRepository(BaseRepository[User], IUserRepository):
 Publish domain events to an event bus:
 
 ```python
-from fastapi_building_blocks.infrastructure import IEventPublisher
+from building_blocks.infrastructure import IEventPublisher
 
 class UserEventPublisher(IEventPublisher):
     async def publish(self, event: DomainEvent) -> None:

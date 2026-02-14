@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
-from fastapi_building_blocks.application import Command
+from building_blocks.application import Command
 
 
 class SendMessageCommand(Command):

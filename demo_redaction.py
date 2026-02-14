@@ -4,7 +4,7 @@ Shows how sensitive data is automatically masked in logs.
 """
 
 import logging
-from src.fastapi_building_blocks.observability import (
+from src.building_blocks.observability import (
     ObservabilityConfig,
     setup_logging,
     get_logger,

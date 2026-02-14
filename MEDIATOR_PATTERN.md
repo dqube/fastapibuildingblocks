@@ -67,7 +67,7 @@ async def create_user(
 Commands and queries automatically inherit from `Request` through the base classes:
 
 ```python
-from fastapi_building_blocks.application import Command, Query
+from building_blocks.application import Command, Query
 
 class CreateUserCommand(Command):
     email: str
@@ -83,7 +83,7 @@ class GetUserByIdQuery(Query):
 Handlers implement the business logic:
 
 ```python
-from fastapi_building_blocks.application import CommandHandler
+from building_blocks.application import CommandHandler
 
 class CreateUserCommandHandler(CommandHandler[UserDTO]):
     def __init__(self, repository: IUserRepository):
@@ -100,7 +100,7 @@ class CreateUserCommandHandler(CommandHandler[UserDTO]):
 Register handlers with the mediator using handler factories:
 
 ```python
-from fastapi_building_blocks.application import Mediator
+from building_blocks.application import Mediator
 
 def get_mediator(repository: UserRepositoryDep) -> IMediator:
     mediator = Mediator()
@@ -128,7 +128,7 @@ Inject the mediator and send requests:
 
 ```python
 from fastapi import APIRouter
-from fastapi_building_blocks.api.responses import SuccessResponse
+from building_blocks.api.responses import SuccessResponse
 
 router = APIRouter()
 
@@ -177,7 +177,7 @@ For production applications, configure the mediator once at startup:
 
 ```python
 from fastapi import FastAPI
-from fastapi_building_blocks.application import Mediator
+from building_blocks.application import Mediator
 
 def configure_mediator(app: FastAPI) -> Mediator:
     """Configure mediator with all handlers."""
@@ -207,7 +207,7 @@ The mediator pattern makes testing easier:
 
 ```python
 import pytest
-from fastapi_building_blocks.application import Mediator
+from building_blocks.application import Mediator
 
 @pytest.fixture
 def mediator(mock_repository):

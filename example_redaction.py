@@ -2,7 +2,7 @@
 Simple example showing before/after redaction.
 """
 
-from src.fastapi_building_blocks.observability.redaction import RedactionFilter
+from src.building_blocks.observability.redaction import RedactionFilter
 
 # Create a redaction filter
 filter = RedactionFilter()

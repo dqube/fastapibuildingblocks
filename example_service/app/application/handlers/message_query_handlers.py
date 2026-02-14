@@ -3,7 +3,7 @@
 import logging
 from typing import List, Optional
 
-from fastapi_building_blocks.application import QueryHandler
+from building_blocks.application import QueryHandler
 from ...domain.entities.message import Message
 from ...infrastructure.persistence.repositories.message_repository import MessageRepository
 from ..queries.message_queries import (
@@ -14,7 +14,7 @@ from ..queries.message_queries import (
 
 # Import observability modules (optional)
 try:
-    from fastapi_building_blocks.observability.logging import get_logger
+    from building_blocks.observability.logging import get_logger
     OBSERVABILITY_AVAILABLE = True
 except ImportError:
     OBSERVABILITY_AVAILABLE = False

@@ -87,7 +87,7 @@ build:
 # Run tests (equivalent to dotnet test)
 test:
 	@echo "🧪 Running tests..."
-	pytest tests/ -v --cov=src/fastapi_building_blocks --cov-report=term-missing
+	pytest tests/ -v --cov=src/building_blocks --cov-report=term-missing
 
 # Run example service tests
 test-example:

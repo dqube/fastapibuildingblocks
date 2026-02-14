@@ -3,7 +3,7 @@ Tests for log redaction functionality.
 """
 
 import pytest
-from fastapi_building_blocks.observability.redaction import (
+from building_blocks.observability.redaction import (
     RedactionFilter,
     create_redaction_filter,
     DEFAULT_SENSITIVE_PATTERNS,

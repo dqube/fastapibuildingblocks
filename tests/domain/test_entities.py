@@ -3,7 +3,7 @@
 import pytest
 from uuid import uuid4
 
-from fastapi_building_blocks.domain.entities.base import BaseEntity
+from building_blocks.domain.entities.base import BaseEntity
 
 
 class User(BaseEntity):

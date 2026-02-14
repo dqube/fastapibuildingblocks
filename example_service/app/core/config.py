@@ -2,7 +2,7 @@
 
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from fastapi_building_blocks.infrastructure.messaging import KafkaConfig
+from building_blocks.infrastructure.messaging import KafkaConfig
 
 
 class Settings(BaseSettings):

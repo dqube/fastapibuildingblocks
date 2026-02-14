@@ -43,7 +43,7 @@ pip install aiokafka pydantic-settings
 ### 2. Define Integration Events
 
 ```python
-from fastapi_building_blocks.domain.events import IntegrationEvent
+from building_blocks.domain.events import IntegrationEvent
 from uuid import UUID
 from datetime import datetime
 
@@ -68,7 +68,7 @@ export KAFKA_CONSUMER_GROUP_ID=user-service-group
 Or configure programmatically:
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import KafkaConfig
+from building_blocks.infrastructure.messaging import KafkaConfig
 
 config = KafkaConfig(
     bootstrap_servers="localhost:9092",
@@ -82,7 +82,7 @@ config = KafkaConfig(
 #### Manual Publishing
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.infrastructure.messaging import (
     KafkaIntegrationEventPublisher,
     KafkaConfig,
 )
@@ -126,8 +126,8 @@ await publisher.publish_many(events)
 #### Define Event Handler
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import IntegrationEventHandler
-from fastapi_building_blocks.domain.events import IntegrationEvent
+from building_blocks.infrastructure.messaging import IntegrationEventHandler
+from building_blocks.domain.events import IntegrationEvent
 
 class UserCreatedHandler(IntegrationEventHandler):
     """Handles UserCreatedIntegrationEvent."""
@@ -144,7 +144,7 @@ class UserCreatedHandler(IntegrationEventHandler):
 #### Register Handler and Start Consumer
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.infrastructure.messaging import (
     KafkaIntegrationEventConsumer,
     KafkaConfig,
 )
@@ -186,7 +186,7 @@ The most powerful feature is automatic integration event publishing through the 
 ### 1. Map Domain Events to Integration Events
 
 ```python
-from fastapi_building_blocks.infrastructure.messaging import EventMapper
+from building_blocks.infrastructure.messaging import EventMapper
 
 mapper = EventMapper()
 
@@ -214,8 +214,8 @@ mapper.register_mapping(
 ### 2. Wrap Mediator with Integration Event Publishing
 
 ```python
-from fastapi_building_blocks.application.mediator import Mediator
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.application.mediator import Mediator
+from building_blocks.infrastructure.messaging import (
     create_integration_event_mediator,
 )
 

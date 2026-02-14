@@ -1,7 +1,7 @@
 """User-related domain events."""
 
 from uuid import UUID
-from fastapi_building_blocks.domain import DomainEvent
+from building_blocks.domain import DomainEvent
 
 
 class UserCreatedEvent(DomainEvent):

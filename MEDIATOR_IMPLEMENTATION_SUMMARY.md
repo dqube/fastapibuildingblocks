@@ -6,7 +6,7 @@ The custom mediator pattern has been successfully implemented in the FastAPI Bui
 
 ## What Was Created
 
-### 1. Core Mediator Components (`src/fastapi_building_blocks/application/mediator/`)
+### 1. Core Mediator Components (`src/building_blocks/application/mediator/`)
 
 - **`base.py`** - Base interfaces and classes:
   - `Request` - Base class for all commands and queries
@@ -23,7 +23,7 @@ The custom mediator pattern has been successfully implemented in the FastAPI Bui
   - Dispatches commands and queries to appropriate handlers
   - Provides clear error messages for missing handlers
 
-### 2. FastAPI Integration (`src/fastapi_building_blocks/api/dependencies/`)
+### 2. FastAPI Integration (`src/building_blocks/api/dependencies/`)
 
 - **`mediator.py`** - FastAPI dependency helper:
   - `get_mediator()` - Factory function for mediator instances
@@ -130,20 +130,20 @@ To use the mediator pattern in your application:
 ## Files Modified/Created
 
 **Created:**
-- `src/fastapi_building_blocks/application/mediator/__init__.py`
-- `src/fastapi_building_blocks/application/mediator/base.py`
-- `src/fastapi_building_blocks/application/mediator/registry.py`
-- `src/fastapi_building_blocks/application/mediator/mediator.py`
-- `src/fastapi_building_blocks/api/dependencies/mediator.py`
+- `src/building_blocks/application/mediator/__init__.py`
+- `src/building_blocks/application/mediator/base.py`
+- `src/building_blocks/application/mediator/registry.py`
+- `src/building_blocks/application/mediator/mediator.py`
+- `src/building_blocks/api/dependencies/mediator.py`
 - `MEDIATOR_PATTERN.md`
 - `test_mediator.py`
 - `MEDIATOR_IMPLEMENTATION_SUMMARY.md` (this file)
 
 **Modified:**
-- `src/fastapi_building_blocks/application/__init__.py`
-- `src/fastapi_building_blocks/application/commands/base.py`
-- `src/fastapi_building_blocks/application/queries/base.py`
-- `src/fastapi_building_blocks/api/dependencies/__init__.py`
+- `src/building_blocks/application/__init__.py`
+- `src/building_blocks/application/commands/base.py`
+- `src/building_blocks/application/queries/base.py`
+- `src/building_blocks/api/dependencies/__init__.py`
 - `example_service/app/api/dependencies.py`
 - `example_service/app/api/v1/endpoints/users.py`
 

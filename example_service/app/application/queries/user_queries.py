@@ -3,7 +3,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi_building_blocks.application import Query
+from building_blocks.application import Query
 
 
 class GetUserByIdQuery(Query):

@@ -13,8 +13,8 @@ from uuid import uuid4
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from fastapi_building_blocks.domain.events.integration_event import IntegrationEvent
-from fastapi_building_blocks.infrastructure.messaging import (
+from building_blocks.domain.events.integration_event import IntegrationEvent
+from building_blocks.infrastructure.messaging import (
     KafkaConfig,
     KafkaIntegrationEventPublisher,
     KafkaIntegrationEventConsumer,

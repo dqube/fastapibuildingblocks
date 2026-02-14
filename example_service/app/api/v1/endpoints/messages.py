@@ -3,7 +3,7 @@
 from typing import List
 from uuid import UUID
 from fastapi import APIRouter, status, Query
-from fastapi_building_blocks.api.responses import SuccessResponse
+from building_blocks.api.responses import SuccessResponse
 
 from ....application.commands.message_commands import SendMessageCommand
 from ....application.queries.message_queries import (

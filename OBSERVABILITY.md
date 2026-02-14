@@ -119,7 +119,7 @@ Navigate to:
 
 ```python
 from fastapi import FastAPI
-from fastapi_building_blocks.observability import setup_observability, ObservabilityConfig
+from building_blocks.observability import setup_observability, ObservabilityConfig
 
 app = FastAPI(title="My Service")
 
@@ -142,7 +142,7 @@ setup_observability(app, config)
 ### Custom Tracing
 
 ```python
-from fastapi_building_blocks.observability import trace_operation, trace_context
+from building_blocks.observability import trace_operation, trace_context
 
 # Decorator-based tracing
 @trace_operation("create_user", {"operation.type": "write"})
@@ -160,7 +160,7 @@ async def process_data():
 ### Custom Logging
 
 ```python
-from fastapi_building_blocks.observability import get_logger, get_logger_with_context
+from building_blocks.observability import get_logger, get_logger_with_context
 
 # Basic logger
 logger = get_logger(__name__)
@@ -174,7 +174,7 @@ logger.info("Processing user action")  # Automatically includes user_id and acti
 ### Custom Metrics
 
 ```python
-from fastapi_building_blocks.observability import get_metrics
+from building_blocks.observability import get_metrics
 
 metrics = get_metrics()
 

@@ -1,7 +1,7 @@
 """User command handlers."""
 
-from fastapi_building_blocks.application import CommandHandler
-from fastapi_building_blocks.api.exceptions import NotFoundException, ConflictException
+from building_blocks.application import CommandHandler
+from building_blocks.api.exceptions import NotFoundException, ConflictException
 
 from ...domain.models.user import User
 from ...domain.repositories.user_repository import IUserRepository
