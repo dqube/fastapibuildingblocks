@@ -2,6 +2,7 @@
 
 from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from fastapi_building_blocks.infrastructure.messaging import KafkaConfig
 
 
 class Settings(BaseSettings):
@@ -37,3 +38,12 @@ class Settings(BaseSettings):
 
 # Create global settings instance
 settings = Settings()
+
+# Create Kafka configuration
+kafka_config = KafkaConfig(
+    bootstrap_servers="kafka:9092",
+    service_name=settings.APP_NAME,
+    consumer_group_id="user-management-service",
+    enable_outbox=settings.KAFKA_ENABLE_OUTBOX,
+    enable_inbox=settings.KAFKA_ENABLE_INBOX,
+)
