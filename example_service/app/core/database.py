@@ -46,4 +46,4 @@ def get_session_factory():
     Returns:
         The async session factory
     """
-    return db_session.get_session_factory()
+    return db_session._session_factory
