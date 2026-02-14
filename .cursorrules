@@ -1,0 +1,744 @@
+# FastAPI Building Blocks - AI Coding Rules
+
+This file contains rules and guidelines for AI-assisted code generation in this project.
+Follow these rules to maintain consistency, structure, and best practices.
+
+## Project Overview
+
+**Name**: FastAPI Building Blocks
+**Purpose**: Reusable building blocks library for FastAPI applications with enterprise patterns
+**Architecture**: Clean Architecture with DDD principles
+**Language**: Python 3.12+
+**Framework**: FastAPI with async/await
+
+## Project Structure
+
+```
+/fastapibuildingblocks/
+├── src/building_blocks/          # Core library code (the package)
+│   ├── api/                      # API layer (exception handlers, responses)
+│   ├── application/              # Application layer (mediator, commands, queries)
+│   ├── domain/                   # Domain layer (entities, events, repositories)
+│   ├── infrastructure/           # Infrastructure (DB, cache, HTTP, messaging)
+│   └── observability/            # Logging, tracing, metrics
+├── example_service/              # Reference implementation
+│   ├── app/
+│   │   ├── api/v1/              # API versioning
+│   │   ├── application/         # Commands, queries, handlers, DTOs
+│   │   ├── core/                # Config, database setup
+│   │   ├── domain/              # Entities, events, models, repositories
+│   │   └── infrastructure/      # Repository implementations
+│   ├── tests/                   # Service-specific tests
+│   └── docs/                    # Service documentation
+├── examples/                     # Demo scripts & integration tests
+├── tests/                        # Unit tests for building blocks
+├── docs/                         # Documentation
+└── README.md                     # Main documentation
+```
+
+## Architectural Principles
+
+### 1. Clean Architecture Layers
+
+**ALWAYS respect layer dependencies:**
+- **Domain** → No dependencies (pure business logic)
+- **Application** → Depends on Domain only
+- **Infrastructure** → Depends on Domain and Application
+- **API** → Depends on all layers
+
+**Rule**: Never allow inner layers to depend on outer layers.
+
+### 2. Dependency Injection
+
+- Use FastAPI's dependency injection (`Depends()`)
+- Define dependencies in `api/dependencies.py`
+- Inject services, repositories, and configs into route handlers
+
+### 3. Async/Await Everywhere
+
+- **ALWAYS** use async/await for I/O operations
+- Database operations: `async def` with SQLAlchemy async session
+- HTTP requests: httpx with `AsyncClient`
+- Redis operations: async redis client
+- Kafka operations: async producer/consumer
+
+**Example**:
+```python
+async def get_user(user_id: int, db: AsyncSession = Depends(get_db)):
+    return await user_repository.get_by_id(user_id)
+```
+
+### 4. Type Hints
+
+- **ALWAYS** include type hints for all functions and methods
+- Use `Optional[T]` for nullable values
+- Use `Union[A, B]` or `A | B` for multiple types
+- Use `Dict[K, V]`, `List[T]`, `Set[T]` for collections
+- Use `Any` sparingly and only when truly needed
+
+**Example**:
+```python
+async def process_command(
+    command: CreateUserCommand,
+    db: AsyncSession,
+    publisher: EventPublisher
+) -> UserDto:
+    ...
+```
+
+## Coding Patterns
+
+### 1. Mediator Pattern (CQRS)
+
+**Commands**: Mutate state (Create, Update, Delete)
+**Queries**: Read state (Get, List, Search)
+
+**Structure**:
+```python
+# Command
+@dataclass
+class CreateUserCommand:
+    name: str
+    email: str
+
+# Handler
+class CreateUserCommandHandler(IRequestHandler[CreateUserCommand, UserDto]):
+    async def handle(self, request: CreateUserCommand) -> UserDto:
+        # Business logic here
+        return UserDto(...)
+
+# Usage in API
+@router.post("/users")
+async def create_user(
+    command: CreateUserCommand,
+    mediator: Mediator = Depends(get_mediator)
+):
+    return await mediator.send(command)
+```
+
+### 2. Repository Pattern
+
+**Interface in Domain**:
+```python
+class IUserRepository(ABC):
+    @abstractmethod
+    async def get_by_id(self, user_id: int) -> Optional[User]:
+        pass
+    
+    @abstractmethod
+    async def add(self, user: User) -> None:
+        pass
+```
+
+**Implementation in Infrastructure**:
+```python
+class UserRepository(IUserRepository):
+    def __init__(self, db: AsyncSession):
+        self._db = db
+    
+    async def get_by_id(self, user_id: int) -> Optional[User]:
+        result = await self._db.execute(
+            select(UserModel).where(UserModel.id == user_id)
+        )
+        return result.scalar_one_or_none()
+```
+
+### 3. Inbox/Outbox Pattern
+
+- Use for reliable event publishing with transactional guarantees
+- Inbox: Store incoming events before processing
+- Outbox: Store events to publish within same transaction
+
+**Configuration**:
+```python
+outbox_config = OutboxConfig(
+    enabled=True,
+    table_name="outbox_events",
+    polling_interval=1.0,
+    batch_size=100
+)
+```
+
+### 4. Domain Events
+
+**Define events in domain/events**:
+```python
+@dataclass
+class UserCreatedEvent:
+    user_id: int
+    email: str
+    occurred_at: datetime
+```
+
+**Publish events**:
+```python
+event = UserCreatedEvent(user_id=user.id, email=user.email, occurred_at=datetime.utcnow())
+await event_publisher.publish(event)
+```
+
+## Technology Stack Guidelines
+
+### FastAPI
+
+- Use APIRouter for modularity
+- Version APIs: `/api/v1`, `/api/v2`
+- Use Pydantic models for request/response validation
+- Apply exception handlers globally
+- Include middleware for logging, CORS, auth
+
+**Router structure**:
+```python
+router = APIRouter()
+
+@router.get("/{id}", response_model=UserResponse)
+async def get_user(id: int):
+    ...
+```
+
+### Pydantic v2
+
+- Use `BaseModel` for DTOs and request/response models
+- Use `ConfigDict` for model configuration
+- Use validators with `@field_validator`
+- Use computed fields with `@computed_field`
+
+**Example**:
+```python
+class UserDto(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+    email: EmailStr
+    name: str
+    created_at: datetime
+    
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        return v.lower()
+```
+
+### SQLAlchemy (Async)
+
+- Use SQLAlchemy 2.0+ async style
+- Define models with `DeclarativeBase`
+- Use async sessions: `AsyncSession`
+- Use `select()`, `insert()`, `update()`, `delete()` statements
+
+**Example**:
+```python
+async with AsyncSession(engine) as session:
+    result = await session.execute(
+        select(User).where(User.email == email)
+    )
+    user = result.scalar_one_or_none()
+```
+
+### Redis
+
+- Use async Redis client: `redis.asyncio`
+- Support Lua scripts for atomic operations
+- Implement caching with TTL
+- Use Redis for distributed locking
+
+**Structure**:
+```python
+class RedisCache:
+    def __init__(self, config: RedisConfig):
+        self._client = redis.asyncio.Redis(...)
+    
+    async def get(self, key: str) -> Optional[str]:
+        return await self._client.get(key)
+    
+    async def set(self, key: str, value: str, ttl: int = 300):
+        await self._client.setex(key, ttl, value)
+```
+
+### HTTP Client
+
+- Use httpx with async client
+- Support multiple auth strategies (Bearer, Basic, API Key, OAuth2)
+- Implement retry policies with exponential backoff
+- Use circuit breaker pattern
+- Inject correlation ID and consumer ID
+
+**Example**:
+```python
+client_config = HttpClientConfig(
+    base_url="https://api.example.com",
+    auth_strategy=BearerAuth(token="..."),
+    retry_policy=ExponentialBackoff(max_retries=3),
+    enable_circuit_breaker=True
+)
+
+async with HttpClient(client_config) as client:
+    response = await client.get("/users")
+```
+
+### Kafka
+
+- Use aiokafka for async operations
+- Implement producer with transactional support
+- Use consumer groups for scalability
+- Apply retry logic for failed messages
+
+## Error Handling
+
+### 1. Global Exception Handler
+
+Use Problem Details (RFC 7807) format:
+```python
+@dataclass
+class ProblemDetail:
+    type: str
+    title: str
+    status: int
+    detail: str
+    instance: str
+    errors: Optional[Dict[str, List[str]]] = None
+```
+
+### 2. Custom Exceptions
+
+Define domain-specific exceptions:
+```python
+class UserNotFoundException(Exception):
+    def __init__(self, user_id: int):
+        self.user_id = user_id
+        super().__init__(f"User {user_id} not found")
+
+class ValidationError(Exception):
+    def __init__(self, field: str, message: str):
+        self.field = field
+        self.message = message
+```
+
+### 3. Exception Handler Registration
+
+```python
+@app.exception_handler(UserNotFoundException)
+async def user_not_found_handler(request: Request, exc: UserNotFoundException):
+    return JSONResponse(
+        status_code=404,
+        content={
+            "type": "/errors/user-not-found",
+            "title": "User Not Found",
+            "status": 404,
+            "detail": str(exc),
+            "instance": str(request.url)
+        }
+    )
+```
+
+## Observability
+
+### 1. Structured Logging
+
+- Use Python's logging module with structlog formatting
+- Include context: trace_id, span_id, correlation_id
+- Log at appropriate levels (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+- **ALWAYS** redact sensitive data (passwords, tokens, API keys)
+
+**Example**:
+```python
+logger.info(
+    "User created",
+    extra={
+        "user_id": user.id,
+        "email": user.email,  # Will be redacted if in sensitive list
+        "correlation_id": correlation_id
+    }
+)
+```
+
+### 2. OpenTelemetry Tracing
+
+- Instrument all async operations
+- Create spans for important operations
+- Propagate trace context across services
+- Include relevant attributes in spans
+
+**Example**:
+```python
+with tracer.start_as_current_span("create_user") as span:
+    span.set_attribute("user.email", email)
+    user = await user_repository.add(user)
+```
+
+### 3. Metrics
+
+- Use Prometheus metrics
+- Track request counts, durations, error rates
+- Include business metrics (users created, orders processed, etc.)
+
+## File Naming Conventions
+
+### Python Files
+
+- **Modules**: `snake_case.py`
+- **Classes**: `PascalCase`
+- **Functions**: `snake_case`
+- **Constants**: `UPPER_SNAKE_CASE`
+- **Private**: prefix with `_` (e.g., `_internal_function`)
+
+### File Organization
+
+- **Commands**: `application/commands/create_user.py`
+- **Queries**: `application/queries/get_user.py`
+- **Handlers**: Same file as command/query or separate `handlers/`
+- **DTOs**: `application/dtos.py` or `application/dtos/user_dto.py`
+- **Entities**: `domain/entities/user.py`
+- **Events**: `domain/events/user_events.py`
+- **Repositories**: 
+  - Interface: `domain/repositories/user_repository.py`
+  - Implementation: `infrastructure/repositories/user_repository.py`
+
+## API Design
+
+### 1. RESTful Endpoints
+
+```python
+GET    /api/v1/users           # List users
+GET    /api/v1/users/{id}      # Get user
+POST   /api/v1/users           # Create user
+PUT    /api/v1/users/{id}      # Update user (full)
+PATCH  /api/v1/users/{id}      # Update user (partial)
+DELETE /api/v1/users/{id}      # Delete user
+```
+
+### 2. Request/Response Models
+
+**Request**:
+```python
+class CreateUserRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+```
+
+**Response**:
+```python
+class UserResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+```
+
+### 3. Error Responses
+
+Use consistent error format:
+```json
+{
+  "type": "/errors/validation-error",
+  "title": "Validation Error",
+  "status": 400,
+  "detail": "Request validation failed",
+  "instance": "/api/v1/users",
+  "errors": {
+    "email": ["Invalid email format"],
+    "password": ["Password too short"]
+  }
+}
+```
+
+## Testing
+
+### 1. Unit Tests
+
+- Location: `tests/`
+- Test individual components in isolation
+- Mock external dependencies
+- Use pytest fixtures
+
+**Example**:
+```python
+@pytest.mark.asyncio
+async def test_create_user_command_handler():
+    # Arrange
+    mock_repo = Mock(spec=IUserRepository)
+    handler = CreateUserCommandHandler(mock_repo)
+    command = CreateUserCommand(name="John", email="john@example.com")
+    
+    # Act
+    result = await handler.handle(command)
+    
+    # Assert
+    assert result.name == "John"
+    mock_repo.add.assert_called_once()
+```
+
+### 2. Integration Tests
+
+- Location: `examples/`
+- Test end-to-end workflows
+- Use real dependencies (DB, Redis, Kafka in Docker)
+- Clean up after tests
+
+### 3. Test Naming
+
+- `test_<functionality>_<scenario>_<expected_result>`
+- Example: `test_create_user_with_valid_data_returns_user_dto()`
+
+## Configuration
+
+### 1. Settings with Pydantic
+
+```python
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False
+    )
+    
+    app_name: str = "My Service"
+    database_url: str
+    redis_url: str = "redis://localhost:6379"
+    kafka_bootstrap_servers: str = "localhost:9092"
+```
+
+### 2. Environment Variables
+
+- Use `.env` files for local development
+- Use environment variables for production
+- Never commit secrets to git
+- Document all required environment variables
+
+## Security Best Practices
+
+### 1. Sensitive Data Redaction
+
+**ALWAYS** redact in logs:
+- Passwords
+- API keys
+- Tokens (Bearer, OAuth, JWT)
+- Credit card numbers
+- Personal identification numbers
+
+### 2. Authentication
+
+- Use proper auth strategies (Bearer token, API key, OAuth2)
+- Validate tokens on every request
+- Implement role-based access control (RBAC)
+
+### 3. Input Validation
+
+- Use Pydantic models for all inputs
+- Validate length, format, range
+- Sanitize inputs before using in queries
+- Use parameterized queries (SQLAlchemy handles this)
+
+## Docker & Deployment
+
+### 1. Multi-stage Dockerfile
+
+```dockerfile
+FROM python:3.12-slim as builder
+WORKDIR /build
+COPY pyproject.toml .
+RUN pip install --user .
+
+FROM python:3.12-slim
+COPY --from=builder /root/.local /home/appuser/.local
+COPY . .
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### 2. Docker Compose
+
+- Use docker-compose for local development
+- Define all services (API, DB, Redis, Kafka)
+- Use networks for service communication
+- Use volumes for data persistence
+
+## Documentation
+
+### 1. Code Documentation
+
+- Use docstrings for all public classes and functions
+- Follow Google/NumPy docstring format
+- Include examples in docstrings
+- Document parameters, return types, and exceptions
+
+**Example**:
+```python
+async def get_user_by_email(email: str) -> Optional[User]:
+    """
+    Retrieve a user by their email address.
+    
+    Args:
+        email: The user's email address (case-insensitive)
+        
+    Returns:
+        User object if found, None otherwise
+        
+    Raises:
+        DatabaseError: If database connection fails
+        
+    Example:
+        >>> user = await get_user_by_email("john@example.com")
+        >>> print(user.name)
+        'John Doe'
+    """
+```
+
+### 2. API Documentation
+
+- Use FastAPI's automatic OpenAPI generation
+- Add descriptions to route handlers
+- Document response models
+- Include example requests/responses
+
+### 3. Markdown Documentation
+
+- Store in `docs/` folder
+- Create README.md for each major component
+- Include architecture diagrams
+- Document deployment procedures
+
+## Code Style
+
+### 1. Formatting
+
+- Use Black for code formatting (line length: 100)
+- Use isort for import sorting
+- Use flake8 for linting
+- Use mypy for type checking
+
+### 2. Import Organization
+
+```python
+# Standard library
+import os
+from datetime import datetime
+from typing import Optional, List
+
+# Third-party
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from pydantic import BaseModel
+
+# Local application
+from building_blocks.application.mediator import Mediator
+from building_blocks.domain.entities import User
+from app.core.database import get_db
+```
+
+### 3. Code Comments
+
+- Use comments sparingly
+- Explain "why", not "what"
+- Document complex algorithms
+- Add TODO/FIXME comments for future improvements
+
+## Common Patterns to Follow
+
+### 1. Dependency Factory Pattern
+
+```python
+def get_user_repository(db: AsyncSession = Depends(get_db)) -> IUserRepository:
+    return UserRepository(db)
+
+def get_mediator(db: AsyncSession = Depends(get_db)) -> Mediator:
+    repository = get_user_repository(db)
+    mediator = Mediator()
+    mediator.register(CreateUserCommand, CreateUserCommandHandler(repository))
+    return mediator
+```
+
+### 2. Context Manager Pattern
+
+```python
+# For resources that need cleanup
+async with HttpClient(config) as client:
+    response = await client.get("/endpoint")
+
+# For database sessions
+async with AsyncSession(engine) as session:
+    await session.execute(query)
+    await session.commit()
+```
+
+### 3. Builder Pattern
+
+```python
+config = (
+    HttpClientConfig.builder()
+    .with_base_url("https://api.example.com")
+    .with_auth(BearerAuth(token))
+    .with_retry(max_retries=3)
+    .with_circuit_breaker()
+    .build()
+)
+```
+
+## Performance Considerations
+
+### 1. Database Queries
+
+- Use eager loading with `selectinload()` to avoid N+1 queries
+- Use pagination for large result sets
+- Create proper indexes
+- Use connection pooling
+
+### 2. Caching
+
+- Cache frequently accessed data
+- Use appropriate TTL
+- Implement cache invalidation strategy
+- Consider distributed caching with Redis
+
+### 3. Async Optimization
+
+- Don't use `asyncio.sleep()` in production code
+- Batch operations when possible
+- Use connection pooling
+- Avoid blocking operations in async functions
+
+## Anti-Patterns to Avoid
+
+❌ **Don't** use `from module import *`
+❌ **Don't** catch generic exceptions without re-raising
+❌ **Don't** use mutable default arguments
+❌ **Don't** mix sync and async code without proper handling
+❌ **Don't** hardcode configuration values
+❌ **Don't** expose sensitive data in error messages or logs
+❌ **Don't** return database models directly from API (use DTOs)
+❌ **Don't** put business logic in API route handlers
+❌ **Don't** use blocking I/O in async functions
+❌ **Don't** create circular dependencies between modules
+
+## When Adding New Features
+
+1. **Start with domain layer** - Define entities, events, repositories
+2. **Add application layer** - Create commands/queries and handlers
+3. **Implement infrastructure** - Repository implementations, external services
+4. **Add API layer** - Create routes, request/response models
+5. **Write tests** - Unit tests first, then integration tests
+6. **Document** - Update README, add docstrings, create examples
+7. **Review structure** - Ensure clean architecture is maintained
+
+## Questions to Ask Before Implementing
+
+- Which layer does this belong to?
+- Is this async or sync? (prefer async for I/O)
+- What are the dependencies?
+- How should errors be handled?
+- What needs to be logged?
+- What needs to be tested?
+- Is sensitive data involved?
+- Does this need caching?
+- How does this scale?
+
+## Additional Resources
+
+- FastAPI Best Practices: https://fastapi.tiangolo.com/tutorial/
+- Clean Architecture: Robert C. Martin
+- Domain-Driven Design: Eric Evans
+- Async Python: https://docs.python.org/3/library/asyncio.html
+
+---
+
+**Remember**: Consistency is key. Follow these rules to maintain a clean, maintainable, and scalable codebase.

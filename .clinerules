@@ -1,0 +1,310 @@
+# AI Assistant Rules for FastAPI Building Blocks
+
+> **Note**: This file works in conjunction with `.cursorrules` which contains detailed architectural and coding guidelines.
+
+## Quick Reference
+
+### Project Type
+- **Language**: Python 3.12+
+- **Framework**: FastAPI with async/await
+- **Architecture**: Clean Architecture + DDD
+- **Patterns**: Mediator (CQRS), Repository, Inbox/Outbox
+
+### Key Commands
+
+```bash
+# Setup
+python -m venv .venv
+source .venv/bin/activate  # or .venv\Scripts\activate on Windows
+pip install -e .
+
+# Run tests
+pytest tests/                    # Unit tests
+pytest examples/                 # Integration tests
+
+# Run example service
+cd example_service
+docker-compose up -d            # Start services
+docker-compose logs -f api      # View logs
+
+# Code quality
+black .                         # Format
+isort .                         # Sort imports
+flake8                          # Lint
+mypy src/                       # Type check
+```
+
+## Code Generation Workflow
+
+### 1. Adding New Feature
+
+**Step-by-step process:**
+
+1. **Domain Layer** (`domain/`)
+   - Create entity if needed: `domain/entities/resource.py`
+   - Define events: `domain/events/resource_events.py`
+   - Define repository interface: `domain/repositories/resource_repository.py`
+
+2. **Application Layer** (`application/`)
+   - Create command/query: `application/commands/create_resource.py`
+   - Create handler in same file or separate: `application/handlers/`
+   - Create DTO: `application/dtos.py` or `application/dtos/resource_dto.py`
+
+3. **Infrastructure Layer** (`infrastructure/`)
+   - Implement repository: `infrastructure/repositories/resource_repository.py`
+   - Add database model if needed (SQLAlchemy)
+   - Implement external service clients
+
+4. **API Layer** (`api/`)
+   - Create router: `api/v1/endpoints/resources.py`
+   - Define request/response models
+   - Register router in `api/v1/api.py`
+
+5. **Tests**
+   - Unit tests in `tests/`
+   - Integration tests in `examples/`
+
+6. **Documentation**
+   - Update relevant docs in `docs/`
+   - Add docstrings to all public functions
+   - Include usage examples
+
+### 2. File Templates
+
+**Command Handler**:
+```python
+from dataclasses import dataclass
+from building_blocks.application.mediator import IRequestHandler
+
+@dataclass
+class CreateResourceCommand:
+    name: str
+    description: str
+
+class CreateResourceCommandHandler(IRequestHandler[CreateResourceCommand, ResourceDto]):
+    def __init__(self, repository: IResourceRepository):
+        self._repository = repository
+    
+    async def handle(self, request: CreateResourceCommand) -> ResourceDto:
+        # Validation
+        # Business logic
+        # Persistence
+        # Event publishing
+        return ResourceDto(...)
+```
+
+**Repository Interface**:
+```python
+from abc import ABC, abstractmethod
+from typing import Optional, List
+
+class IResourceRepository(ABC):
+    @abstractmethod
+    async def get_by_id(self, id: int) -> Optional[Resource]:
+        pass
+    
+    @abstractmethod
+    async def add(self, resource: Resource) -> None:
+        pass
+    
+    @abstractmethod
+    async def list_all(self) -> List[Resource]:
+        pass
+```
+
+**API Endpoint**:
+```python
+from fastapi import APIRouter, Depends, HTTPException, status
+
+router = APIRouter()
+
+@router.post("/", response_model=ResourceResponse, status_code=status.HTTP_201_CREATED)
+async def create_resource(
+    request: CreateResourceRequest,
+    mediator: Mediator = Depends(get_mediator)
+) -> ResourceResponse:
+    """Create a new resource."""
+    command = CreateResourceCommand(**request.model_dump())
+    result = await mediator.send(command)
+    return ResourceResponse.model_validate(result)
+```
+
+## Important Rules for AI Generation
+
+### ✅ Always Do
+
+- Use **async/await** for all I/O operations
+- Add **type hints** to all functions and parameters
+- Include **docstrings** with examples
+- **Validate inputs** with Pydantic models
+- **Redact sensitive data** in logs (passwords, tokens, keys)
+- Use **dependency injection** for services and repositories
+- Follow **clean architecture** layer boundaries
+- Create **DTOs** for API responses (never return domain entities directly)
+- Use **structured logging** with context (correlation_id, trace_id)
+- Handle **exceptions** with proper error responses
+
+### ❌ Never Do
+
+- Mix sync and async code improperly
+- Use blocking I/O in async functions
+- Expose sensitive data in logs or errors
+- Break clean architecture boundaries
+- Return domain entities directly from API
+- Use `import *` wildcard imports
+- Catch exceptions without handling or re-raising
+- Hardcode configuration values
+- Skip type hints
+- Ignore error cases
+
+## Context for AI
+
+### Architecture Layers
+
+```
+┌─────────────────────────────────────┐
+│         API Layer (FastAPI)          │  ← HTTP endpoints, request/response
+├─────────────────────────────────────┤
+│   Application Layer (Commands/      │  ← Business workflows, orchestration
+│   Queries, Handlers, Mediator)      │
+├─────────────────────────────────────┤
+│   Domain Layer (Entities, Events,   │  ← Core business logic, rules
+│   Repository Interfaces)            │
+├─────────────────────────────────────┤
+│   Infrastructure Layer (DB, Cache,  │  ← External services, implementations
+│   HTTP, Messaging)                  │
+└─────────────────────────────────────┘
+```
+
+### Key Technologies
+
+- **FastAPI**: Web framework with automatic OpenAPI docs
+- **Pydantic v2**: Data validation and serialization
+- **SQLAlchemy 2.0**: Async ORM for PostgreSQL
+- **Redis**: Caching and distributed locking
+- **Kafka**: Event streaming with aiokafka
+- **httpx**: Async HTTP client
+- **OpenTelemetry**: Distributed tracing
+- **Prometheus**: Metrics
+- **Docker**: Containerization
+
+### Common Imports
+
+```python
+# FastAPI
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
+
+# Pydantic
+from pydantic import BaseModel, Field, EmailStr, ConfigDict
+
+# SQLAlchemy
+from sqlalchemy import select, insert, update, delete
+from sqlalchemy.ext.asyncio import AsyncSession
+
+# Building Blocks
+from building_blocks.application.mediator import Mediator, IRequestHandler
+from building_blocks.domain.entities import Entity
+from building_blocks.infrastructure.cache import RedisCache
+from building_blocks.infrastructure.http import HttpClient, HttpClientConfig
+```
+
+## Troubleshooting Common Issues
+
+### Issue: Import errors
+- Ensure package is installed: `pip install -e .`
+- Check PYTHONPATH includes project root
+- Verify virtual environment is activated
+
+### Issue: Async errors
+- Use `async def` for functions with `await`
+- Use `AsyncSession` for database operations
+- Use async Redis/Kafka clients
+- Don't mix sync and async without proper handling
+
+### Issue: Type checking fails
+- Add type hints to all parameters
+- Use `Optional[T]` for nullable values
+- Import types from `typing` module
+- Run `mypy src/` to check
+
+### Issue: Tests fail
+- Ensure services are running (Docker)
+- Check database migrations are applied
+- Verify environment variables are set
+- Clean up test data after each test
+
+## Example: Adding CRUD Endpoints
+
+```python
+# 1. Domain Entity (domain/entities/product.py)
+class Product(Entity):
+    name: str
+    price: Decimal
+    sku: str
+
+# 2. Repository Interface (domain/repositories/product_repository.py)
+class IProductRepository(ABC):
+    async def get_by_id(self, id: int) -> Optional[Product]: ...
+    async def add(self, product: Product) -> None: ...
+
+# 3. Commands (application/commands/product_commands.py)
+@dataclass
+class CreateProductCommand:
+    name: str
+    price: Decimal
+    sku: str
+
+# 4. Handler
+class CreateProductCommandHandler(IRequestHandler[CreateProductCommand, ProductDto]):
+    async def handle(self, request: CreateProductCommand) -> ProductDto:
+        product = Product(name=request.name, price=request.price, sku=request.sku)
+        await self._repository.add(product)
+        return ProductDto.from_entity(product)
+
+# 5. API Endpoint (api/v1/endpoints/products.py)
+@router.post("/", response_model=ProductResponse, status_code=201)
+async def create_product(
+    request: CreateProductRequest,
+    mediator: Mediator = Depends(get_mediator)
+):
+    command = CreateProductCommand(**request.model_dump())
+    return await mediator.send(command)
+```
+
+## When to Ask for Clarification
+
+Ask the user if:
+- Business logic rules are unclear
+- Authentication/authorization requirements aren't specified
+- Database schema changes are needed
+- External API integration details are missing
+- Performance requirements are critical
+- Deployment environment is different
+
+## Documentation Standards
+
+- **Docstrings**: Use for all public functions, classes, methods
+- **Comments**: Explain "why", not "what"
+- **README**: Update when adding new features
+- **API Docs**: Automatic via FastAPI, add descriptions
+- **Examples**: Include in `examples/` folder
+
+## Quality Checklist
+
+Before completing any feature:
+
+- [ ] Code follows clean architecture principles
+- [ ] All functions have type hints
+- [ ] Pydantic models validate inputs
+- [ ] Sensitive data is redacted in logs
+- [ ] Tests are written and passing
+- [ ] Documentation is updated
+- [ ] No hardcoded values
+- [ ] Error handling is implemented
+- [ ] Async/await used correctly
+- [ ] Dependencies are injected
+
+---
+
+**For detailed rules, see `.cursorrules`**
