@@ -67,7 +67,7 @@ async def lifespan(app: FastAPI):
                 app.state.outbox_relay = OutboxRelay(
                     kafka_config=kafka_config,
                     session_factory=session_factory,
-                    polling_interval=5.0,  # Check outbox every 5 seconds
+                    poll_interval_seconds=5,  # Check outbox every 5 seconds
                 )
                 await app.state.outbox_relay.start()
                 print(f"✅ Outbox relay started (polling every 5s)")

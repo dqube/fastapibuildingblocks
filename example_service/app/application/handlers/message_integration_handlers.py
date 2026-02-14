@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime
 
-from fastapi_building_blocks.infrastructure.messaging.kafka_consumer import IntegrationEventHandler
+from fastapi_building_blocks.infrastructure.messaging import InboxIntegrationEventHandler
 
 from ...domain.events.message_events import MessageSentIntegrationEvent
 from ...domain.entities.message import Message
@@ -22,69 +22,64 @@ except ImportError:
 logger = get_logger(__name__) if OBSERVABILITY_AVAILABLE else logging.getLogger(__name__)
 
 
-class MessageSentIntegrationEventHandler(IntegrationEventHandler):
+class MessageSentIntegrationEventHandler(InboxIntegrationEventHandler):
     """
     Handler for MessageSentIntegrationEvent.
     
     This handler processes messages received from Kafka and saves them
-    to the database for later retrieval.
+    to the database for later retrieval. Uses inbox pattern for exactly-once processing.
     """
     
-    async def handle(self, event: MessageSentIntegrationEvent) -> None:
+    async def handle(self, event: MessageSentIntegrationEvent, session) -> None:
         """
         Handle a MessageSentIntegrationEvent received from Kafka.
         
         Args:
             event: The integration event to process
+            session: Database session (provided by inbox consumer for transactional processing)
         """
-        from ...core.database import db_session
+        # Use provided session (part of inbox transaction)
+        repository = MessageRepository(session)
         
-        # Get async session for database operations
-        async for session in db_session.get_session():
-            repository = MessageRepository(session)
-            
-            logger.info(
-                f"📨 Received message from Kafka: {event.message_id}",
-                extra={
-                    "extra_fields": {
-                        "event.type": event.event_type,
-                        "event.id": str(event.event_id),
-                        "message.id": str(event.message_id),
-                        "message.sender": event.sender,
-                        "message.content": event.content,
-                        "message.timestamp": event.timestamp.isoformat(),
-                        "correlation_id": str(event.correlation_id) if event.correlation_id else None,
-                    }
-                },
-            )
-            
-            # Create message entity
-            message = Message(
-                message_id=event.message_id,
-                content=event.content,
-                sender=event.sender,
-                timestamp=event.timestamp,
-                metadata=event.metadata,
-                processed_at=datetime.utcnow(),
-            )
-            
-            # Save message to database
-            saved_message = await repository.add(message)
-            
-            # Explicitly commit the transaction
-            await session.commit()
-            
-            logger.info(
-                f"✅ Successfully processed and saved message: {event.message_id}",
-                extra={
-                    "extra_fields": {
-                        "message.id": str(event.message_id),
-                        "message.sender": event.sender,
-                        "saved_id": str(saved_message.id),
-                        "processed_at": datetime.utcnow().isoformat(),
-                    }
-                },
-            )
-            
-            break  # Exit after first iteration since we only need one session
-
+        logger.info(
+            f"📨 Received message from Kafka: {event.message_id}",
+            extra={
+                "extra_fields": {
+                    "event.type": event.event_type,
+                    "event.id": str(event.event_id),
+                    "message.id": str(event.message_id),
+                    "message.sender": event.sender,
+                    "message.content": event.content,
+                    "message.timestamp": event.timestamp.isoformat(),
+                    "correlation_id": str(event.correlation_id) if event.correlation_id else None,
+                }
+            },
+        )
+        
+        # Create message entity
+        message = Message(
+            message_id=event.message_id,
+            content=event.content,
+            sender=event.sender,
+            timestamp=event.timestamp,
+            metadata=event.metadata,
+            processed_at=datetime.utcnow(),
+        )
+        
+        # Save message to database (uses session from inbox transaction)
+        saved_message = await repository.add(message)
+        
+        # No need to commit here - inbox consumer will commit the transaction
+        # (which includes both the inbox entry and this message)
+        
+        logger.info(
+            f"✅ Successfully processed and saved message: {event.message_id}",
+            extra={
+                "extra_fields": {
+                    "message.id": str(event.message_id),
+                    "message.sender": event.sender,
+                    "saved_id": str(saved_message.id),
+                    "processed_at": datetime.utcnow().isoformat(),
+                }
+            },
+        )
