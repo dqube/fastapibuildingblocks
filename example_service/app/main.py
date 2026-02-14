@@ -19,6 +19,19 @@ except ImportError:
     OBSERVABILITY_AVAILABLE = False
     print("Warning: Observability modules not available. Install with observability extras.")
 
+# Import Kafka (optional - gracefully handle if not installed)
+try:
+    from fastapi_building_blocks.infrastructure.messaging.kafka_config import KafkaConfig
+    from fastapi_building_blocks.infrastructure.messaging.kafka_producer import KafkaIntegrationEventPublisher
+    from fastapi_building_blocks.infrastructure.messaging.kafka_consumer import KafkaIntegrationEventConsumer
+    from .domain.events.message_events import MessageSentIntegrationEvent
+    from .application.handlers.message_integration_handlers import MessageSentIntegrationEventHandler
+    from .api.dependencies import set_kafka_publisher
+    KAFKA_AVAILABLE = True
+except ImportError:
+    KAFKA_AVAILABLE = False
+    print("Warning: Kafka modules not available. Install with kafka extras.")
+
 
 
 def create_application() -> FastAPI:
@@ -87,15 +100,63 @@ def create_application() -> FastAPI:
     # Database lifecycle events
     @app.on_event("startup")
     async def startup():
-        """Initialize database connection on startup."""
+        """Initialize database connection and Kafka on startup."""
         from .core.database import init_db
         await init_db()
+        
+        # Initialize Kafka producer and consumer
+        if KAFKA_AVAILABLE:
+            try:
+                # Create Kafka configuration from environment
+                kafka_config = KafkaConfig(
+                    bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
+                    service_name=settings.APP_NAME,
+                    consumer_group_id=os.getenv("KAFKA_CONSUMER_GROUP", f"{settings.APP_NAME.lower()}-group"),
+                )
+                
+                # Initialize producer
+                app.state.kafka_producer = KafkaIntegrationEventPublisher(kafka_config)
+                await app.state.kafka_producer.start()
+                
+                # Set global publisher for dependency injection
+                set_kafka_publisher(app.state.kafka_producer)
+                
+                # Initialize consumer
+                app.state.kafka_consumer = KafkaIntegrationEventConsumer(kafka_config)
+                
+                # Register integration event handler
+                # The handler will create its own database session for processing
+                app.state.kafka_consumer.register_handler(
+                    MessageSentIntegrationEvent,
+                    MessageSentIntegrationEventHandler()
+                )
+                
+                # Start consuming from the topic
+                await app.state.kafka_consumer.start(["integration-events.message_sent"])
+                
+                print(f"✅ Kafka initialized successfully")
+                print(f"   - Producer: {kafka_config.bootstrap_servers}")
+                print(f"   - Consumer Group: {kafka_config.consumer_group_id}")
+                print(f"   - Listening to: integration-events.message_sent")
+                
+            except Exception as e:
+                print(f"⚠️ Failed to initialize Kafka: {e}")
+                print("   - Message endpoints will not work without Kafka")
     
     @app.on_event("shutdown")
     async def shutdown():
-        """Close database connection on shutdown."""
+        """Close database connection and Kafka on shutdown."""
         from .core.database import close_db
         await close_db()
+        
+        # Stop Kafka producer and consumer
+        if KAFKA_AVAILABLE and hasattr(app.state, 'kafka_producer'):
+            try:
+                await app.state.kafka_producer.stop()
+                await app.state.kafka_consumer.stop()
+                print("✅ Kafka stopped successfully")
+            except Exception as e:
+                print(f"⚠️ Error stopping Kafka: {e}")
     
     # Health check endpoint
     @app.get("/health", tags=["health"])

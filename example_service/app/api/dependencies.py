@@ -1,10 +1,11 @@
 """FastAPI dependencies."""
 
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_building_blocks.application import IMediator, Mediator
+from fastapi_building_blocks.infrastructure.messaging.base import IEventPublisher
 
 from ..core.database import get_db
 from ..domain.repositories.user_repository import IUserRepository
@@ -19,16 +20,44 @@ from ..application.handlers.user_query_handlers import (
     GetUserByEmailQueryHandler,
     GetAllUsersQueryHandler,
 )
+from ..application.handlers.message_command_handlers import SendMessageCommandHandler
+from ..application.handlers.message_query_handlers import (
+    GetAllMessagesQueryHandler,
+    GetMessagesBySenderQueryHandler,
+    GetMessageByIdQueryHandler,
+)
 from ..application.commands.user_commands import (
     CreateUserCommand,
     UpdateUserCommand,
     DeleteUserCommand,
 )
+from ..application.commands.message_commands import SendMessageCommand
 from ..application.queries.user_queries import (
     GetUserByIdQuery,
     GetUserByEmailQuery,
     GetAllUsersQuery,
 )
+from ..application.queries.message_queries import (
+    GetAllMessagesQuery,
+    GetMessagesBySenderQuery,
+    GetMessageByIdQuery,
+)
+from ..infrastructure.persistence.repositories.message_repository import MessageRepository
+
+
+# Global Kafka publisher instance (initialized at startup)
+_kafka_publisher: Optional[IEventPublisher] = None
+
+
+def set_kafka_publisher(publisher: IEventPublisher) -> None:
+    """Set the global Kafka publisher instance."""
+    global _kafka_publisher
+    _kafka_publisher = publisher
+
+
+def get_kafka_publisher() -> Optional[IEventPublisher]:
+    """Get the global Kafka publisher instance."""
+    return _kafka_publisher
 
 
 # Database session dependency
@@ -52,6 +81,22 @@ def get_user_repository(db: DatabaseDep) -> IUserRepository:
 
 
 UserRepositoryDep = Annotated[IUserRepository, Depends(get_user_repository)]
+
+
+def get_message_repository(db: DatabaseDep) -> MessageRepository:
+    """
+    Get message repository instance.
+    
+    Args:
+        db: Database session
+        
+    Returns:
+        Message repository instance
+    """
+    return MessageRepository(db)
+
+
+MessageRepositoryDep = Annotated[MessageRepository, Depends(get_message_repository)]
 
 
 # Command handler dependencies
@@ -123,6 +168,7 @@ GetAllUsersHandlerDep = Annotated[
 # Mediator dependencies
 def get_mediator(
     repository: UserRepositoryDep,
+    message_repository: MessageRepositoryDep,
 ) -> IMediator:
     """
     Get configured mediator instance.
@@ -132,6 +178,7 @@ def get_mediator(
     
     Args:
         repository: User repository instance
+        message_repository: Message repository instance
         
     Returns:
         Configured mediator instance
@@ -152,6 +199,14 @@ def get_mediator(
         lambda: DeleteUserCommandHandler(repository)
     )
     
+    # Register message command handler (with Kafka publisher)
+    kafka_publisher = get_kafka_publisher()
+    if kafka_publisher:
+        mediator.register_handler_factory(
+            SendMessageCommand,
+            lambda: SendMessageCommandHandler(kafka_publisher)
+        )
+    
     # Register query handlers
     mediator.register_handler_factory(
         GetUserByIdQuery,
@@ -164,6 +219,20 @@ def get_mediator(
     mediator.register_handler_factory(
         GetAllUsersQuery,
         lambda: GetAllUsersQueryHandler(repository)
+    )
+    
+    # Register message query handlers
+    mediator.register_handler_factory(
+        GetAllMessagesQuery,
+        lambda: GetAllMessagesQueryHandler(message_repository)
+    )
+    mediator.register_handler_factory(
+        GetMessagesBySenderQuery,
+        lambda: GetMessagesBySenderQueryHandler(message_repository)
+    )
+    mediator.register_handler_factory(
+        GetMessageByIdQuery,
+        lambda: GetMessageByIdQueryHandler(message_repository)
     )
     
     return mediator

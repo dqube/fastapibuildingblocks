@@ -1,48 +1,3 @@
--- User Management Database Schema
-
--- Create users table
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    bio TEXT,
-    is_active BOOLEAN DEFAULT TRUE,
-    last_login TIMESTAMP,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
-);
-
--- Create indexes
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
-CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC);
-
--- Grant permissions
-GRANT ALL PRIVILEGES ON TABLE users TO postgres;
-
--- Create messages table
-CREATE TABLE IF NOT EXISTS messages (
-    id UUID PRIMARY KEY,
-    message_id UUID UNIQUE NOT NULL,
-    content TEXT NOT NULL,
-    sender VARCHAR(255) NOT NULL,
-    timestamp TIMESTAMP NOT NULL,
-    metadata JSONB,
-    processed_at TIMESTAMP NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    updated_at TIMESTAMP NOT NULL
-);
-
--- Create indexes for messages
-CREATE INDEX IF NOT EXISTS idx_messages_message_id ON messages(message_id);
-CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender);
-CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp DESC);
-CREATE INDEX IF NOT EXISTS idx_messages_processed_at ON messages(processed_at DESC);
-
--- Grant permissions for messages
-GRANT ALL PRIVILEGES ON TABLE messages TO postgres;
-
 -- Create outbox table for transactional outbox pattern
 CREATE TABLE IF NOT EXISTS outbox_messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -65,13 +20,9 @@ CREATE TABLE IF NOT EXISTS outbox_messages (
     aggregate_id UUID
 );
 
--- Create indexes for outbox
 CREATE INDEX IF NOT EXISTS ix_outbox_event_id ON outbox_messages(event_id);
 CREATE INDEX IF NOT EXISTS ix_outbox_status ON outbox_messages(status);
 CREATE INDEX IF NOT EXISTS ix_outbox_status_created ON outbox_messages(status, created_at);
-
--- Grant permissions for outbox
-GRANT ALL PRIVILEGES ON TABLE outbox_messages TO postgres;
 
 -- Create inbox table for exactly-once consumer pattern
 CREATE TABLE IF NOT EXISTS inbox_messages (
@@ -92,7 +43,6 @@ CREATE TABLE IF NOT EXISTS inbox_messages (
     payload TEXT
 );
 
--- Create indexes for inbox
 CREATE INDEX IF NOT EXISTS ix_inbox_event_type ON inbox_messages(event_type);
 CREATE INDEX IF NOT EXISTS ix_inbox_topic ON inbox_messages(topic);
 CREATE INDEX IF NOT EXISTS ix_inbox_correlation_id ON inbox_messages(correlation_id);
@@ -102,5 +52,5 @@ CREATE INDEX IF NOT EXISTS ix_inbox_locked_until ON inbox_messages(locked_until)
 CREATE INDEX IF NOT EXISTS ix_inbox_status_received ON inbox_messages(status, received_at);
 CREATE INDEX IF NOT EXISTS ix_inbox_topic_partition_offset ON inbox_messages(topic, partition, "offset");
 
--- Grant permissions for inbox
+GRANT ALL PRIVILEGES ON TABLE outbox_messages TO postgres;
 GRANT ALL PRIVILEGES ON TABLE inbox_messages TO postgres;

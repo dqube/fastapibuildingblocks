@@ -42,3 +42,21 @@ class UpdateUserDTO(DTO):
     first_name: Optional[str] = Field(None, min_length=1, max_length=50, examples=["Jane"], description="User's first name")
     last_name: Optional[str] = Field(None, min_length=1, max_length=50, examples=["Smith"], description="User's last name")
     bio: Optional[str] = Field(None, max_length=500, examples=["Updated bio"], description="User's biography")
+
+
+class SendMessageDTO(DTO):
+    """DTO for sending a message to Kafka."""
+    
+    content: str = Field(..., min_length=1, max_length=1000, examples=["Hello from FastAPI!"], description="Message content")
+    sender: str = Field(..., min_length=1, max_length=100, examples=["user@example.com"], description="Message sender identifier")
+    metadata: Optional[dict] = Field(None, examples=[{"priority": "high", "category": "notification"}], description="Optional message metadata")
+
+
+class MessageDTO(DTO):
+    """Message data transfer object."""
+    
+    message_id: UUID
+    content: str
+    sender: str
+    timestamp: datetime
+    metadata: Optional[dict] = None

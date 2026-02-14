@@ -230,15 +230,14 @@ async def show_database_status():
         # Inbox messages
         result = await session.execute(
             text("""
-                SELECT processed, COUNT(*) 
+                SELECT status, COUNT(*) 
                 FROM inbox_messages 
-                GROUP BY processed
+                GROUP BY status
             """)
         )
         print("\n📥 INBOX_MESSAGES:")
         for row in result:
-            status = "Processed" if row[0] else "Pending"
-            print(f"   {status}: {row[1]} messages")
+            print(f"   {row[0]}: {row[1]} messages")
         
         # Recent outbox messages
         result = await session.execute(
@@ -256,16 +255,15 @@ async def show_database_status():
         # Recent inbox messages
         result = await session.execute(
             text("""
-                SELECT event_type, processed, created_at 
+                SELECT event_type, status, received_at 
                 FROM inbox_messages 
-                ORDER BY created_at DESC 
+                ORDER BY received_at DESC 
                 LIMIT 5
             """)
         )
         print("\n📥 Recent Inbox Messages:")
         for row in result:
-            status = "✅" if row[1] else "⏳"
-            print(f"   {status} {row[0]} - {row[2]}")
+            print(f"   {row[0]} - {row[1]} - {row[2]}")
 
 
 # ============================================================================
