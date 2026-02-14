@@ -47,13 +47,13 @@ from ..application.queries.message_queries import (
 from ..infrastructure.persistence.repositories.message_repository import MessageRepository
 
 
+# Database session dependency
+DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
+
+
 def get_event_publisher(db: DatabaseDep) -> IEventPublisher:
     """Get event publisher (uses outbox if enabled)."""
     return create_event_publisher(kafka_config, db)
-
-
-# Database session dependency
-DatabaseDep = Annotated[AsyncSession, Depends(get_db)]
 
 
 # Repository dependencies
