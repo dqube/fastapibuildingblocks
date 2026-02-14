@@ -3,6 +3,7 @@
 from uuid import uuid4
 from datetime import datetime
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_building_blocks.application import CommandHandler
 from fastapi_building_blocks.infrastructure.messaging.base import IEventPublisher
 
@@ -15,18 +16,21 @@ class SendMessageCommandHandler(CommandHandler[MessageDTO]):
     """
     Handler for SendMessageCommand.
     
-    This handler publishes a MessageSentIntegrationEvent to Kafka,
-    demonstrating the integration event pattern.
+    This handler publishes a MessageSentIntegrationEvent to Kafka.
+    When outbox pattern is enabled, the event is first saved to the 
+    outbox_messages table, then a background relay worker publishes it.
     """
     
-    def __init__(self, event_publisher: IEventPublisher):
+    def __init__(self, event_publisher: IEventPublisher, session: AsyncSession):
         """
         Initialize the handler.
         
         Args:
-            event_publisher: Event publisher instance (Kafka producer)
+            event_publisher: Event publisher instance (direct or outbox-based)
+            session: Database session for transaction management
         """
         self.event_publisher = event_publisher
+        self.session = session
     
     async def handle(self, command: SendMessageCommand) -> MessageDTO:
         """
@@ -52,8 +56,11 @@ class SendMessageCommandHandler(CommandHandler[MessageDTO]):
             source_service="User Management Service",
         )
         
-        # Publish to Kafka
+        # Publish to Kafka (or outbox if enabled)
         await self.event_publisher.publish(integration_event)
+        
+        # Commit the transaction (saves to outbox if enabled)
+        await self.session.commit()
         
         # Return DTO
         return MessageDTO(

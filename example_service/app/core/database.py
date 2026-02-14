@@ -34,3 +34,16 @@ async def init_db():
 async def close_db():
     """Close database connection."""
     await db_session.disconnect()
+
+
+def get_session_factory():
+    """
+    Get the SQLAlchemy session factory.
+    
+    This is used by background workers (like OutboxRelay) that need
+    to create their own database sessions.
+    
+    Returns:
+        The async session factory
+    """
+    return db_session.get_session_factory()

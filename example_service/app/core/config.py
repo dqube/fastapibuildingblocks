@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/user_management"
     
+    # Kafka Inbox/Outbox Patterns
+    KAFKA_ENABLE_OUTBOX: bool = True  # Save events to outbox before publishing
+    KAFKA_ENABLE_INBOX: bool = True   # Save incoming messages to inbox for idempotency
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=True,

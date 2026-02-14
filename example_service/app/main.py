@@ -21,12 +21,14 @@ except ImportError:
 
 # Import Kafka (optional - gracefully handle if not installed)
 try:
-    from fastapi_building_blocks.infrastructure.messaging.kafka_config import KafkaConfig
-    from fastapi_building_blocks.infrastructure.messaging.kafka_producer import KafkaIntegrationEventPublisher
-    from fastapi_building_blocks.infrastructure.messaging.kafka_consumer import KafkaIntegrationEventConsumer
+    from fastapi_building_blocks.infrastructure.messaging import (
+        KafkaConfig,
+        create_event_publisher,
+        InboxIntegrationEventConsumer,
+        OutboxRelay,
+    )
     from .domain.events.message_events import MessageSentIntegrationEvent
     from .application.handlers.message_integration_handlers import MessageSentIntegrationEventHandler
-    from .api.dependencies import set_kafka_publisher
     KAFKA_AVAILABLE = True
 except ImportError:
     KAFKA_AVAILABLE = False
@@ -107,25 +109,45 @@ def create_application() -> FastAPI:
         # Initialize Kafka producer and consumer
         if KAFKA_AVAILABLE:
             try:
-                # Create Kafka configuration from environment
+                from .core.database import get_session_factory
+                
+                # Create Kafka configuration with inbox/outbox patterns
                 kafka_config = KafkaConfig(
                     bootstrap_servers=os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"),
                     service_name=settings.APP_NAME,
                     consumer_group_id=os.getenv("KAFKA_CONSUMER_GROUP", f"{settings.APP_NAME.lower()}-group"),
+                    enable_outbox=settings.KAFKA_ENABLE_OUTBOX,
+                    enable_inbox=settings.KAFKA_ENABLE_INBOX,
                 )
                 
-                # Initialize producer
-                app.state.kafka_producer = KafkaIntegrationEventPublisher(kafka_config)
-                await app.state.kafka_producer.start()
+                # Initialize producer (factory chooses outbox or direct based on config)
+                # For outbox pattern, we'll create it per-request with database session
+                app.state.kafka_config = kafka_config
                 
-                # Set global publisher for dependency injection
-                set_kafka_publisher(app.state.kafka_producer)
+                # Start outbox relay worker if outbox is enabled
+                if kafka_config.enable_outbox:
+                    session_factory = get_session_factory()
+                    app.state.outbox_relay = OutboxRelay(
+                        kafka_config=kafka_config,
+                        session_factory=session_factory,
+                        polling_interval=5.0,  # Check outbox every 5 seconds
+                    )
+                    await app.state.outbox_relay.start()
+                    print(f"✅ Outbox relay started (polling every 5s)")
+                else:
+                    # For direct publishing, create and start the publisher (no outbox)
+                    app.state.kafka_producer = create_event_publisher(kafka_config)
+                    await app.state.kafka_producer.start()
+                    print(f"✅ Direct Kafka publisher initialized (no outbox)")
                 
-                # Initialize consumer
-                app.state.kafka_consumer = KafkaIntegrationEventConsumer(kafka_config)
+                # Initialize consumer with inbox pattern support
+                session_factory = get_session_factory()
+                app.state.kafka_consumer = InboxIntegrationEventConsumer(
+                    kafka_config=kafka_config,
+                    session_factory=session_factory,
+                )
                 
                 # Register integration event handler
-                # The handler will create its own database session for processing
                 app.state.kafka_consumer.register_handler(
                     MessageSentIntegrationEvent,
                     MessageSentIntegrationEventHandler()
@@ -137,11 +159,15 @@ def create_application() -> FastAPI:
                 print(f"✅ Kafka initialized successfully")
                 print(f"   - Producer: {kafka_config.bootstrap_servers}")
                 print(f"   - Consumer Group: {kafka_config.consumer_group_id}")
+                print(f"   - Outbox Pattern: {'✅ Enabled' if kafka_config.enable_outbox else '❌ Disabled'}")
+                print(f"   - Inbox Pattern: {'✅ Enabled' if kafka_config.enable_inbox else '❌ Disabled'}")
                 print(f"   - Listening to: integration-events.message_sent")
                 
             except Exception as e:
                 print(f"⚠️ Failed to initialize Kafka: {e}")
                 print("   - Message endpoints will not work without Kafka")
+                import traceback
+                traceback.print_exc()
     
     @app.on_event("shutdown")
     async def shutdown():
@@ -149,11 +175,16 @@ def create_application() -> FastAPI:
         from .core.database import close_db
         await close_db()
         
-        # Stop Kafka producer and consumer
-        if KAFKA_AVAILABLE and hasattr(app.state, 'kafka_producer'):
+        # Stop Kafka producer, consumer, and outbox relay
+        if KAFKA_AVAILABLE:
             try:
-                await app.state.kafka_producer.stop()
-                await app.state.kafka_consumer.stop()
+                if hasattr(app.state, 'outbox_relay'):
+                    await app.state.outbox_relay.stop()
+                    print("✅ Outbox relay stopped")
+                if hasattr(app.state, 'kafka_producer'):
+                    await app.state.kafka_producer.stop()
+                if hasattr(app.state, 'kafka_consumer'):
+                    await app.state.kafka_consumer.stop()
                 print("✅ Kafka stopped successfully")
             except Exception as e:
                 print(f"⚠️ Error stopping Kafka: {e}")

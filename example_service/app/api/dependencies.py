@@ -6,8 +6,10 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi_building_blocks.application import IMediator, Mediator
 from fastapi_building_blocks.infrastructure.messaging.base import IEventPublisher
+from fastapi_building_blocks.infrastructure.messaging import create_event_publisher
 
 from ..core.database import get_db
+from ..core.config import kafka_config
 from ..domain.repositories.user_repository import IUserRepository
 from ..infrastructure.repositories.postgres_user_repository import PostgreSQLUserRepository
 from ..application.handlers.user_command_handlers import (
@@ -45,19 +47,9 @@ from ..application.queries.message_queries import (
 from ..infrastructure.persistence.repositories.message_repository import MessageRepository
 
 
-# Global Kafka publisher instance (initialized at startup)
-_kafka_publisher: Optional[IEventPublisher] = None
-
-
-def set_kafka_publisher(publisher: IEventPublisher) -> None:
-    """Set the global Kafka publisher instance."""
-    global _kafka_publisher
-    _kafka_publisher = publisher
-
-
-def get_kafka_publisher() -> Optional[IEventPublisher]:
-    """Get the global Kafka publisher instance."""
-    return _kafka_publisher
+def get_event_publisher(db: DatabaseDep) -> IEventPublisher:
+    """Get event publisher (uses outbox if enabled)."""
+    return create_event_publisher(kafka_config, db)
 
 
 # Database session dependency
@@ -165,10 +157,15 @@ GetAllUsersHandlerDep = Annotated[
 ]
 
 
+EventPublisherDep = Annotated[IEventPublisher, Depends(get_event_publisher)]
+
+
 # Mediator dependencies
 def get_mediator(
     repository: UserRepositoryDep,
     message_repository: MessageRepositoryDep,
+    event_publisher: EventPublisherDep,
+    db: DatabaseDep,
 ) -> IMediator:
     """
     Get configured mediator instance.
@@ -179,6 +176,8 @@ def get_mediator(
     Args:
         repository: User repository instance
         message_repository: Message repository instance
+        event_publisher: Event publisher (uses outbox if enabled)
+        db: Database session
         
     Returns:
         Configured mediator instance
@@ -199,13 +198,11 @@ def get_mediator(
         lambda: DeleteUserCommandHandler(repository)
     )
     
-    # Register message command handler (with Kafka publisher)
-    kafka_publisher = get_kafka_publisher()
-    if kafka_publisher:
-        mediator.register_handler_factory(
-            SendMessageCommand,
-            lambda: SendMessageCommandHandler(kafka_publisher)
-        )
+    # Register message command handler (with session-scoped publisher)
+    mediator.register_handler_factory(
+        SendMessageCommand,
+        lambda: SendMessageCommandHandler(event_publisher, db)
+    )
     
     # Register query handlers
     mediator.register_handler_factory(
