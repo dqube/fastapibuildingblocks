@@ -4,12 +4,15 @@ FastAPI middleware for automatic observability instrumentation.
 
 import time
 import json
+import uuid
 from typing import Callable, Optional, Dict, Any
 from io import BytesIO
 
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response as StarletteResponse, StreamingResponse
+
+from opentelemetry import trace
 
 from .config import ObservabilityConfig
 from .tracing import setup_tracing, instrument_fastapi, get_tracer
@@ -140,15 +143,43 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         """
         Process HTTP request and add observability instrumentation.
         
+        Includes correlation ID and user ID tracking:
+        - Extracts X-Correlation-ID from headers or generates new UUID
+        - Extracts X-User-ID from headers if present
+        - Stores in request.state for handler access
+        - Adds to OpenTelemetry span attributes
+        - Includes in all log entries
+        - Adds to response headers
+        
         Args:
             request: Incoming HTTP request
             call_next: Next middleware or route handler
             
         Returns:
-            HTTP response
+            HTTP response with correlation headers
         """
         metrics = get_metrics()
         config = _observability_config
+        
+        # Extract or generate correlation ID
+        correlation_id = request.headers.get("x-correlation-id")
+        if not correlation_id:
+            correlation_id = str(uuid.uuid4())
+            
+        # Extract user ID if present
+        user_id = request.headers.get("x-user-id")
+        
+        # Store in request state for handler access
+        request.state.correlation_id = correlation_id
+        if user_id:
+            request.state.user_id = user_id
+        
+        # Add to OpenTelemetry span attributes if tracing is enabled
+        current_span = trace.get_current_span()
+        if current_span.is_recording():
+            current_span.set_attribute("correlation_id", correlation_id)
+            if user_id:
+                current_span.set_attribute("user_id", user_id)
         
         # Extract request details
         method = request.method
@@ -198,7 +229,12 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 "http.status_code": response.status_code,
                 "http.duration_seconds": round(duration, 4),
                 "http.duration_ms": round(duration * 1000, 2),
+                "correlation_id": correlation_id,
             }
+            
+            # Add user ID if present
+            if user_id:
+                log_data["user_id"] = user_id
             
             # Add request data
             if request_data:
@@ -221,6 +257,11 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 log_message,
                 extra={"extra_fields": log_data},
             )
+            
+            # Add correlation ID and user ID to response headers
+            response.headers["X-Correlation-ID"] = correlation_id
+            if user_id:
+                response.headers["X-User-ID"] = user_id
             
             return response
             
@@ -247,7 +288,12 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
                 "http.error_type": type(e).__name__,
                 "http.duration_seconds": round(duration, 4),
                 "http.duration_ms": round(duration * 1000, 2),
+                "correlation_id": correlation_id,
             }
+            
+            # Add user ID if present
+            if user_id:
+                log_data["user_id"] = user_id
             
             # Add request data if available
             if request_data:
