@@ -154,6 +154,47 @@ fastapibuildingblocks/
 - `BaseMiddleware` - Middleware base class
 - `SuccessResponse` / `ErrorResponse` - Standardized responses
 - Custom exceptions with proper HTTP status codes
+- **Global Exception Handler** - RFC 7807 ProblemDetails with automatic validation errors
+- **HttpClient** - Production-ready HTTP client with auth, retry, circuit breaker
+
+### New Infrastructure Components
+
+✅ **Global Exception Handler** (See [EXCEPTION_HANDLER.md](EXCEPTION_HANDLER.md))
+- RFC 7807 ProblemDetails compliant error responses
+- Automatic validation error formatting (like .NET's ValidationProblemDetails)
+- Trace ID correlation for distributed tracing
+- Configurable stack traces (dev vs production)
+- Custom exception handlers
+- Integration with existing APIException hierarchy
+
+```python
+from building_blocks.api.exceptions import setup_exception_handlers
+
+# Setup once in your FastAPI app
+setup_exception_handlers(app, include_stack_trace=False, log_errors=True)
+```
+
+✅ **HTTP Client Wrapper** (See [HTTP_CLIENT.md](HTTP_CLIENT.md))
+- Multiple authentication strategies (Bearer, Basic, OAuth2, API Key)
+- Automatic correlation ID and consumer ID injection
+- Retry logic with exponential backoff
+- Circuit breaker pattern for resilience
+- OpenTelemetry distributed tracing
+- Request/response logging with sensitive data protection
+
+```python
+from building_blocks.infrastructure.http import HttpClient, HttpClientConfig, BearerAuth
+
+config = HttpClientConfig(
+    base_url="https://api.example.com",
+    auth_strategy=BearerAuth(token="your_token"),
+    consumer_id="my-service-v1",
+    enable_circuit_breaker=True,
+)
+
+async with HttpClient(config) as client:
+    response = await client.get("/endpoint", correlation_id="trace-id")
+```
 
 ### Example Service Features
 

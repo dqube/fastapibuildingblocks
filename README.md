@@ -22,7 +22,10 @@ This package provides a comprehensive set of base classes and utilities for buil
 🐳 **Docker Support** - Production-ready Docker configurations  
 📮 **Kafka Integration** - Wolverine-style integration events for microservices  
 🔄 **Event-Driven Architecture** - Domain events and integration events  
-⚡ **Async/Await** - Full async support throughout
+⚡ **Async/Await** - Full async support throughout  
+🌐 **HTTP Client** - Production-ready HTTP client with auth, retry, circuit breaker  
+⚠️ **Global Exception Handler** - RFC 7807 ProblemDetails with automatic validation errors  
+🔒 **Multiple Auth Strategies** - Bearer, Basic, OAuth2, API Key authentication
 - **Commands**: Write operations (CQRS pattern)
 - **Queries**: Read operations (CQRS pattern)
 - **Handlers**: Command and query handlers
@@ -113,13 +116,131 @@ make clean           # Clean artifacts
 
 ## Documentation
 
+### Core Patterns
 - [MEDIATOR_PATTERN.md](MEDIATOR_PATTERN.md) - Mediator pattern implementation
+- [EXCEPTION_HANDLER.md](EXCEPTION_HANDLER.md) - Global exception handler with ProblemDetails
+- [HTTP_CLIENT.md](HTTP_CLIENT.md) - HTTP client wrapper with resilience patterns
+
+### Messaging & Events
 - [KAFKA_INTEGRATION.md](KAFKA_INTEGRATION.md) - Kafka integration events (Wolverine-style)
 - [KAFKA_QUICKSTART.md](KAFKA_QUICKSTART.md) - 5-minute Kafka quick start guide
 - [INBOX_OUTBOX_PATTERN.md](INBOX_OUTBOX_PATTERN.md) - Reliable messaging patterns
 - [INBOX_OUTBOX_CONFIG.md](INBOX_OUTBOX_CONFIG.md) - Configuration guide for inbox/outbox
+
+### Infrastructure
 - [OBSERVABILITY.md](OBSERVABILITY.md) - Complete observability guide
 - [DOCKER_GUIDE.md](DOCKER_GUIDE.md) - Docker deployment guide
+
+---
+
+## 🚀 Quick Usage Examples
+
+### Global Exception Handler with ProblemDetails
+
+RFC 7807 compliant error responses with automatic validation error formatting:
+
+```python
+from fastapi import FastAPI
+from building_blocks.api.exceptions import setup_exception_handlers
+
+app = FastAPI()
+
+# Setup global exception handler
+setup_exception_handlers(
+    app,
+    include_stack_trace=False,  # Production: hide stack traces
+    log_errors=True             # Log all errors
+)
+
+# Use in your endpoints
+from building_blocks.api.exceptions import NotFoundException
+
+@app.get("/users/{user_id}")
+async def get_user(user_id: str):
+    if not user:
+        raise NotFoundException(
+            message=f"User '{user_id}' not found",
+            error_code="USER_NOT_FOUND"
+        )
+    return user
+```
+
+**Response (automatic ProblemDetails formatting):**
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc7231#section-6.5.4",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "User '123' not found",
+  "instance": "/users/123",
+  "trace_id": "a1b2c3d4-5678-9012-3456-789012345678",
+  "extensions": {
+    "error_code": "USER_NOT_FOUND"
+  }
+}
+```
+
+**Validation errors are automatically formatted:**
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+  "title": "One or more validation errors occurred",
+  "status": 400,
+  "errors": {
+    "email": ["value is not a valid email address"],
+    "age": ["Input should be greater than 0"]
+  }
+}
+```
+
+See [EXCEPTION_HANDLER.md](EXCEPTION_HANDLER.md) for complete documentation.
+
+### HTTP Client for External APIs
+
+Production-ready HTTP client with authentication, retry, circuit breaker:
+
+```python
+from building_blocks.infrastructure.http import (
+    HttpClient,
+    HttpClientConfig,
+    BearerAuth,
+    ExponentialBackoff,
+)
+
+# Configure client
+config = HttpClientConfig(
+    base_url="https://api.example.com",
+    auth_strategy=BearerAuth(token="your_token"),
+    consumer_id="my-service-v1",
+    retry_policy=ExponentialBackoff(max_retries=3),
+    enable_circuit_breaker=True,
+    timeout=30.0,
+)
+
+# Use client
+async with HttpClient(config) as client:
+    # Automatic correlation ID injection
+    response = await client.get("/users/123")
+    
+    # Or provide custom correlation ID for distributed tracing
+    response = await client.post(
+        "/orders",
+        json={"product_id": "123"},
+        correlation_id="existing-trace-id"
+    )
+```
+
+**Features:**
+- ✅ Automatic correlation ID (X-Correlation-Id) and consumer ID (X-Consumer-Id) injection
+- ✅ Multiple auth strategies: Bearer, Basic, OAuth2, API Key
+- ✅ Retry logic with exponential backoff
+- ✅ Circuit breaker to prevent cascading failures
+- ✅ OpenTelemetry distributed tracing
+- ✅ Request/response logging
+
+See [HTTP_CLIENT.md](HTTP_CLIENT.md) for complete documentation.
+
+---
 
 ## Usage (Basic)
 
