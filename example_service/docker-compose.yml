@@ -25,6 +25,7 @@ services:
     depends_on:
       - postgres
       - kafka
+      - redis
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/users/')"]
       interval: 30s
@@ -34,6 +35,38 @@ services:
     networks:
       - app-network
       - observability
+
+  # Redis - Caching
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - app-network
+    volumes:
+      - redis-data:/data
+
+  # RedisInsight - Redis GUI
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redisinsight
+    ports:
+      - "5540:5540"
+    volumes:
+      - redisinsight-data:/data
+    depends_on:
+      - redis
+    networks:
+      - app-network
+    environment:
+      - RITRUSTEDORIGINS=http://localhost:5540
 
   # PostgreSQL - Database
   postgres:
@@ -234,6 +267,8 @@ volumes:
   zookeeper-data:
   zookeeper-logs:
   kafka-data:
+  redis-data:
+  redisinsight-data:
 
 networks:
   app-network:

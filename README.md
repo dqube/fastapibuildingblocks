@@ -25,7 +25,9 @@ This package provides a comprehensive set of base classes and utilities for buil
 ⚡ **Async/Await** - Full async support throughout  
 🌐 **HTTP Client** - Production-ready HTTP client with auth, retry, circuit breaker  
 ⚠️ **Global Exception Handler** - RFC 7807 ProblemDetails with automatic validation errors  
-🔒 **Multiple Auth Strategies** - Bearer, Basic, OAuth2, API Key authentication
+🔒 **Multiple Auth Strategies** - Bearer, Basic, OAuth2, API Key authentication  
+💾 **Redis Cache** - Production-ready caching with Lua script support  
+🔧 **External API Config** - Centralized configuration for external API integrations
 - **Commands**: Write operations (CQRS pattern)
 - **Queries**: Read operations (CQRS pattern)
 - **Handlers**: Command and query handlers
@@ -130,6 +132,9 @@ make clean           # Clean artifacts
 ### Infrastructure
 - [OBSERVABILITY.md](OBSERVABILITY.md) - Complete observability guide
 - [DOCKER_GUIDE.md](DOCKER_GUIDE.md) - Docker deployment guide
+- [REDIS_CACHE.md](REDIS_CACHE.md) - Redis caching with Lua scripts and API configuration
+- [REDIS_UI_GUIDE.md](REDIS_UI_GUIDE.md) - RedisInsight GUI for visual Redis management
+- [REDIS_API_GUIDE.md](REDIS_API_GUIDE.md) - FastAPI demo for Redis features
 
 ---
 
@@ -239,6 +244,56 @@ async with HttpClient(config) as client:
 - ✅ Request/response logging
 
 See [HTTP_CLIENT.md](HTTP_CLIENT.md) for complete documentation.
+
+### Redis Cache with Lua Scripts
+
+Production-ready Redis caching with Lua script support:
+
+```python
+from building_blocks.infrastructure.cache import RedisClient, RedisConfig
+
+# Configure Redis
+config = RedisConfig(
+    host="localhost",
+    port=6379,
+    key_prefix="myapp:",
+    default_ttl=3600  # 1 hour
+)
+
+# Basic caching
+async with RedisClient(config) as cache:
+    # Set and get
+    await cache.set("user:123", {"name": "John", "email": "john@example.com"})
+    user = await cache.get("user:123")
+    
+    # Lua script for rate limiting
+    rate_limit_script = """
+    local key = KEYS[1]
+    local limit = tonumber(ARGV[1])
+    local current = redis.call('GET', key)
+    if current and tonumber(current) >= limit then
+        return 0
+    else
+        redis.call('INCR', key)
+        return 1
+    end
+    """
+    cache.register_script("rate_limit", rate_limit_script)
+    allowed = await cache.execute_script(
+        "rate_limit", keys=["rate:user:123"], args=[10]
+    )
+```
+
+**Features:**
+- ✅ Async/await support with connection pooling
+- ✅ Lua script execution for atomic operations
+- ✅ Distributed locking for critical sections
+- ✅ Pipeline operations for batch commands
+- ✅ Cache decorator for function results
+- ✅ Multiple data structures (Hashes, Lists, Sets)
+- ✅ External API configuration integration
+
+See [REDIS_CACHE.md](REDIS_CACHE.md) for complete documentation.
 
 ---
 
